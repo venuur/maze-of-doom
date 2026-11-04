@@ -1,0 +1,24 @@
+.pm { max-width: 980px; margin: 0 auto; display: grid; gap: 10px; color: #d9d3e6; font: 14px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+.pm h1 { font-size: 16px; margin: 0; }
+.pm .hint { opacity: 0.55; font-size: 12px; }
+.pm .locked { opacity: 0.4; }
+.pm button { background: #2a2534; color: #d9d3e6; border: 1px solid #4a4458; border-radius: 4px; padding: 6px 12px; font: inherit; cursor: pointer; }
+.pm button.primary { background: #3a5a8a; border-color: #4a7bd8; }
+.pm-head { display: flex; justify-content: space-between; align-items: center; }
+.pm-note { color: #e8a04a; }
+.pm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px; }
+.pm-card { background: #15121c; border: 1px solid #2a2534; border-radius: 6px; padding: 10px; display: grid; gap: 8px; align-content: start; }
+.pm-title { display: flex; gap: 10px; align-items: center; }
+.pm .token { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: bold; color: #fff; flex: none; }
+.pm-slots { display: grid; gap: 6px; }
+.pm-slots label { display: grid; grid-template-columns: 84px 1fr; gap: 2px 8px; align-items: center; }
+.pm-slots small { grid-column: 2; opacity: 0.55; font-size: 11px; }
+.pm select { background: #0b0910; color: #d9d3e6; border: 1px solid #4a4458; border-radius: 4px; padding: 4px; font: inherit; min-width: 0; }
+.pm select:disabled { opacity: 0.45; }
+.pm .chip { display: inline-block; background: #2a2534; border-radius: 10px; padding: 1px 8px; margin: 2px 2px 0 0; font-size: 12px; }
+.pm .chip.sec { background: #1f3346; }
+.pm-progress details { font-size: 12px; }
+.pm-progress summary { cursor: pointer; }
+.pm-progress ul { margin: 4px 0 6px; padding-left: 18px; list-style: none; }
+.pm-progress li { opacity: 0.5; }
+.pm-progress li.got { opacity: 1; }

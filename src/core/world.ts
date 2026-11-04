@@ -3,7 +3,7 @@
  * Deterministic given the RNG seed and the sequence of inputs. No DOM, no timing.
  */
 import { Rng } from "./rng";
-import { isPassable, tileAt, type Zone } from "./zone";
+import { featureAt, isPassable, tileAt, type Zone } from "./zone";
 
 export type Dir = "up" | "down" | "left" | "right";
 export const DIRS: readonly Dir[] = ["up", "down", "left", "right"];
@@ -25,6 +25,8 @@ export interface EnemyKind {
   /** Default battle encounter for this kind. */
   encounter?: string;
   battle?: {
+    /** Job XP this foe is worth to each surviving party member. */
+    xp?: number;
     hp: number;
     prefers: number[];
     mobile: boolean;
@@ -63,6 +65,7 @@ export type WorldEvent =
   | { type: "turned"; who: "player" }
   | { type: "blocked" }
   | { type: "encounter"; enemyId: string; initiator: "player" | "enemy" }
+  | { type: "interact"; featureId: string }
   | { type: "exit"; x: number; y: number }
   | { type: "rest" };
 
@@ -107,6 +110,8 @@ export function movePlayer(world: World, dir: Dir): WorldEvent[] {
 
   const enemy = enemyAt(world, nx, ny);
   if (enemy) return [{ type: "encounter", enemyId: enemy.id, initiator: "player" }];
+  const feature = featureAt(world.zone, nx, ny);
+  if (feature) return [{ type: "interact", featureId: feature.id }];
 
   if (!isPassable(world.zone, nx, ny, world.abilities)) return [{ type: "blocked" }];
 
@@ -150,6 +155,7 @@ export function stepEnemies(world: World): WorldEvent[] {
     if (!isPassable(world.zone, nx, ny, NO_ABILITIES)) continue;
     const tile = tileAt(world.zone, nx, ny);
     if (tile?.exit || tile?.rest) continue;
+    if (featureAt(world.zone, nx, ny)) continue;
     if (enemyAt(world, nx, ny)) continue;
 
     const fromX = e.x;

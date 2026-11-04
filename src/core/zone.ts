@@ -30,6 +30,25 @@ export interface EnemySpawn {
   encounter?: string;
 }
 
+/**
+ * Something on the map you can walk up to and touch (solid). For now: a
+ * source of a discoverable job (a hermit, an abandoned weapon, ...).
+ */
+export interface Feature {
+  id: string;
+  kind: "job";
+  /** Job taught by this feature. */
+  job: string;
+  x: number;
+  y: number;
+  name: string;
+  /** Shown when the job is discovered. */
+  text: string;
+  /** Shown on later touches. */
+  after?: string;
+  look: "hermit" | "weapon";
+}
+
 export interface ZoneData {
   id: string;
   name: string;
@@ -37,6 +56,7 @@ export interface ZoneData {
   start: { x: number; y: number };
   map: string[];
   enemies: EnemySpawn[];
+  features?: Feature[];
 }
 
 export interface Zone {
@@ -50,6 +70,7 @@ export interface Zone {
   tiles: string[];
   tileDefs: TileTable;
   spawns: EnemySpawn[];
+  features: Feature[];
 }
 
 export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
@@ -78,6 +99,7 @@ export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
     tiles,
     tileDefs,
     spawns: data.enemies,
+    features: data.features ?? [],
   };
 
   const check = (x: number, y: number, what: string) => {
@@ -86,8 +108,13 @@ export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
   };
   check(data.start.x, data.start.y, "start");
   for (const e of data.enemies) check(e.x, e.y, `enemy ${e.id}`);
+  for (const f of zone.features) check(f.x, f.y, `feature ${f.id}`);
 
   return zone;
+}
+
+export function featureAt(zone: Zone, x: number, y: number): Feature | undefined {
+  return zone.features.find((f) => f.x === x && f.y === y);
 }
 
 export function inBounds(zone: Zone, x: number, y: number): boolean {

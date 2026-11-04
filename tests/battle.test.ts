@@ -14,7 +14,8 @@ import {
 } from "../src/core/battle/engine";
 import { legalAnchors, linePath, tileKey } from "../src/core/battle/grid";
 import type { BattleSetup, BattleState, Intent, Tile, UnitSpec } from "../src/core/battle/types";
-import { BATTLE_CONTENT, ENCOUNTERS, SKILLS, buildEncounter, partyUnit } from "../src/data/battle";
+import { BATTLE_CONTENT, ENCOUNTERS, JOB_CONTENT, SKILLS, buildEncounter } from "../src/data/battle";
+import { validateJobContent } from "../src/core/jobs";
 
 const P = (depth: number, lane: number): Tile => ({ side: "party", depth, lane });
 const F = (depth: number, lane: number): Tile => ({ side: "foe", depth, lane });
@@ -374,9 +375,118 @@ describe("shipped content", () => {
     }
   });
 
-  it("every job skill exists", () => {
-    for (const job of ["vanguard", "lancer", "pyromancer", "mystic"]) {
-      for (const sk of partyUnit(job, 0, 0).skills) expect(SKILLS[sk], sk).toBeDefined();
+  it("job data is valid (abilities exist, levels reachable, hybrid recipes sound)", () => {
+    expect(validateJobContent(JOB_CONTENT)).toEqual([]);
+  });
+});
+
+describe("traits from ability slots", () => {
+  const glob = (anchor: Tile): Intent => ({ actorId: "f", skillId: "glob", anchor });
+
+  it("Counter: hit by an enemy attack, strike back after it resolves", () => {
+    const s = battle(
+      { party: [ally("a", 0, 0, [], { traits: { counter: { power: 2, element: "physical" } } })], foes: [foe("f", 0, 0, ["glob"])] },
+      [glob(P(0, 0))],
+    );
+    endTurn(s, { declare: false });
+    expect(hp(s, "a")).toBe(8);
+    expect(hp(s, "f")).toBe(8);
+    expect(s.log).toContainEqual({ type: "reaction", unitId: "a", trait: "counter", targetId: "f" });
+  });
+
+  it("Counter does not fire on friendly fire", () => {
+    const s = battle(
+      {
+        party: [ally("a", 0, 0, [], { traits: { counter: { power: 2, element: "physical" } } }), ally("p", 2, 0, ["firebolt"])],
+        foes: [foe("f", 0, 1, [])],
+      },
+      [],
+    );
+    useSkill(s, "p", "firebolt", null); // hits the ally in front
+    expect(hp(s, "a")).toBe(6);
+    expect(hp(s, "p")).toBe(10);
+  });
+
+  it("Repel: the attacker is shoved back", () => {
+    const s = battle({ party: [ally("a", 0, 0, [], { traits: { repel: true } })], foes: [foe("f", 0, 0, ["glob"])] }, [glob(P(0, 0))]);
+    endTurn(s, { declare: false });
+    expect(getUnit(s, "f").depth).toBe(1);
+  });
+
+  it("Second Wind heals once, the first time HP drops to half", () => {
+    const s = battle({ party: [ally("a", 0, 0, [], { hp: 6, maxHp: 8, traits: { secondWind: 4 } })], foes: [foe("f", 0, 0, ["glob"])] }, [glob(P(0, 0))]);
+    endTurn(s, { declare: false }); // 6 -> 4 (half of 8), +4
+    expect(hp(s, "a")).toBe(8);
+    for (let i = 0; i < 2; i++) {
+      s.intents = [glob(P(0, 0))];
+      endTurn(s, { declare: false });
     }
+    expect(hp(s, "a")).toBe(4); // already spent
+  });
+
+  it("element, shape and heal bonuses", () => {
+    const s = battle(
+      {
+        party: [
+          ally("p", 2, 0, ["firebolt"], { traits: { elementBonus: { fire: 1 } } }),
+          ally("r", 2, 1, ["aimed_shot"], { traits: { shapeBonus: { single: 1 } } }),
+          ally("m", 2, 2, ["mend"], { hp: 2, maxHp: 10, traits: { healBonus: 2 } }),
+        ],
+        foes: [foe("f", 0, 0, []), foe("g", 2, 1, [])],
+      },
+      [],
+    );
+    useSkill(s, "p", "firebolt", null);
+    useSkill(s, "r", "aimed_shot", F(2, 1));
+    useSkill(s, "m", "mend", P(2, 2));
+    expect(hp(s, "f")).toBe(10 - 5);
+    expect(hp(s, "g")).toBe(10 - 4);
+    expect(hp(s, "m")).toBe(2 + 6);
+  });
+
+  it("steadfast units can't be displaced or swapped", () => {
+    const s = battle(
+      { party: [ally("l", 1, 0, ["hook", "transpose"])], foes: [foe("f", 1, 0, [], { traits: { steadfast: true } }), foe("g", 1, 1, [])] },
+      [],
+    );
+    useSkill(s, "l", "hook", null);
+    expect(getUnit(s, "f").depth).toBe(1);
+    expect(s.log).toContainEqual({ type: "steadfast", unitId: "f" });
+    endTurn(s, { declare: false });
+    useSkill(s, "l", "transpose", F(1, 1), "up"); // g would swap with steadfast f: collision instead
+    expect(getUnit(s, "f").lane).toBe(0);
+    expect(getUnit(s, "g").lane).toBe(1);
+  });
+
+  it("hazard immunity", () => {
+    const s = battle(
+      {
+        party: [ally("a", 2, 1, [], { traits: { hazardImmune: ["lava"] } }), ally("b", 2, 0, [])],
+        foes: [foe("f", 0, 0, [])],
+        hazards: [
+          { tile: P(2, 1), kind: "lava", turns: null },
+          { tile: P(2, 0), kind: "lava", turns: null },
+        ],
+      },
+      [],
+    );
+    endTurn(s, { declare: false });
+    expect(hp(s, "a")).toBe(10);
+    expect(hp(s, "b")).toBeLessThan(10);
+  });
+
+  it("movement traits widen legal steps", () => {
+    const s = battle(
+      {
+        party: [ally("n", 0, 0, []), ally("b", 1, 1, [], { traits: { move: "blink" } }), ally("s", 2, 2, [], { traits: { move: "stride" } })],
+        foes: [foe("f", 0, 0, [])],
+      },
+      [],
+    );
+    expect(legalMoves(s, getUnit(s, "n"))).toHaveLength(2);
+    expect(legalMoves(s, getUnit(s, "b"))).toHaveLength(8);
+    expect(legalMoves(s, getUnit(s, "s")).map((t) => `${t.depth}${t.lane}`).sort()).toEqual(["02", "11", "12", "20", "21"]);
+    moveUnit(s, "b", P(2, 0));
+    expect(getUnit(s, "b")).toMatchObject({ depth: 2, lane: 0 });
   });
 });

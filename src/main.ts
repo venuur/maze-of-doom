@@ -4,9 +4,11 @@
  */
 import { movePlayer, stepEnemies, type Dir, type WorldEvent } from "./core/world";
 import { ENEMY_KINDS } from "./data";
-import { JOBS, ENCOUNTERS } from "./data/battle";
+import { JOBS, ENCOUNTERS, JOB_CONTENT } from "./data/battle";
 import { BattleView, type BattleExit } from "./battle/view";
-import { createSession, finishBattle, restoreParty, startEncounter } from "./game/session";
+import { levelIn } from "./core/jobs";
+import { createSession, finishBattle, interact, restoreParty, startEncounter } from "./game/session";
+import { PartyMenu } from "./ui/party-menu";
 import { drawFrame, TILE, type Effect, type Pos } from "./render/renderer";
 import { Tween } from "./render/tween";
 
@@ -29,6 +31,7 @@ const zoneLabel = document.getElementById("zone-name")!;
 const messageEl = document.getElementById("message")!;
 const partyEl = document.getElementById("party")!;
 const battleLayer = document.getElementById("battle-layer")!;
+const menuLayer = document.getElementById("menu-layer")!;
 
 // --- Messages ---
 let messageTimer = 0;
@@ -51,11 +54,11 @@ const effects: Effect[] = [];
 function renderParty() {
   partyEl.innerHTML = session.party
     .map((m) => {
-      const j = JOBS[m.job]!;
+      const j = JOBS[m.primary]!;
       const pct = Math.round((m.hp / m.maxHp) * 100);
-      return `<span class="m ${m.hp <= 0 ? "down" : ""}"><b style="color:${j.color}">${j.glyph}</b>${m.hp}/${m.maxHp}<span class="bar"><i style="width:${pct}%;${pct <= 35 ? "background:#e84a5f" : ""}"></i></span></span>`;
+      return `<span class="m ${m.hp <= 0 ? "down" : ""}"><b style="color:${j.color}">${j.glyph}</b>${m.name} <span class="hint">${j.name} ${levelIn(JOB_CONTENT, m, m.primary)}</span> ${m.hp}/${m.maxHp}<span class="bar"><i style="width:${pct}%;${pct <= 35 ? "background:#e84a5f" : ""}"></i></span></span>`;
     })
-    .join("");
+    .join("") + `<button id="party-btn" title="Jobs and ability slots">Party (P)</button>`;
 }
 renderParty();
 
@@ -71,6 +74,11 @@ const press = (d: Dir) => { if (!held.includes(d)) held.push(d); };
 const release = (d: Dir) => { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); };
 
 window.addEventListener("keydown", (e) => {
+  if (e.code === "KeyP" || (e.code === "Escape" && mode === "menu")) {
+    if (mode === "explore") openMenu();
+    else if (mode === "menu") closeMenu();
+    return;
+  }
   if (mode !== "explore") return;
   const d = KEYS[e.code];
   if (d) { press(d); e.preventDefault(); }
@@ -90,10 +98,36 @@ document.querySelectorAll<HTMLButtonElement>("[data-dir]").forEach((btn) => {
 });
 
 // --- Encounters ---
-type Mode = "explore" | "transition" | "battle";
+type Mode = "explore" | "transition" | "battle" | "menu";
 let mode: Mode = "explore";
 let graceUntil = 0;
 let battleView: BattleView | null = null;
+let menu: PartyMenu | null = null;
+
+function openMenu() {
+  if (mode !== "explore") return;
+  mode = "menu";
+  held.length = 0;
+  menuLayer.hidden = false;
+  menu = new PartyMenu(menuLayer, session, renderParty, closeMenu);
+}
+
+function closeMenu() {
+  menu?.destroy();
+  menu = null;
+  menuLayer.hidden = true;
+  mode = "explore";
+  lastEnemyTick = performance.now();
+}
+
+partyEl.addEventListener("click", (e) => {
+  if ((e.target as HTMLElement).closest("#party-btn")) openMenu();
+});
+
+/** Features whose job hasn't been discovered yet. */
+function freshFeatures(): Set<string> {
+  return new Set(world.zone.features.filter((f) => !session.discovered.has(f.job)).map((f) => f.id));
+}
 
 function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: number) {
   if (now < graceUntil || mode !== "explore") return;
@@ -105,7 +139,8 @@ function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: num
     const t = enemyTweens.get(enemyId)?.pos(now);
     if (t) effects.push({ kind: "poof", px: t.px, py: t.py, start: now, color: ENEMY_KINDS[enemy.kind]!.color });
     enemyTweens.delete(enemyId);
-    say(`${result.message} (Instant win)`);
+    say(`(Instant win) ${result.message}`, result.notes.length ? 7000 : 4000);
+    renderParty();
     return;
   }
 
@@ -144,14 +179,19 @@ function endEncounter(enemyId: string, state: Parameters<typeof finishBattle>[2]
   // Defeat relocates the player: snap the tween to the new spot.
   playerTween.moveTo(world.player.x, world.player.y, world.player.x, world.player.y, now - PLAYER_STEP_MS);
   renderParty();
-  say(msg, 5000);
+  say(msg, msg.length > 60 ? 8000 : 5000);
 }
+
+let lastTouched: string | null = null;
 
 function handle(events: WorldEvent[], now: number) {
   for (const ev of events) {
     switch (ev.type) {
       case "moved":
-        if (ev.who === "player") playerTween.moveTo(world.player.x, world.player.y, ev.fromX, ev.fromY, now);
+        if (ev.who === "player") {
+          playerTween.moveTo(world.player.x, world.player.y, ev.fromX, ev.fromY, now);
+          lastTouched = null;
+        }
         else {
           const e = world.enemies.find((en) => en.id === ev.who);
           if (e) enemyTweens.get(e.id)?.moveTo(e.x, e.y, ev.fromX, ev.fromY, now);
@@ -160,6 +200,14 @@ function handle(events: WorldEvent[], now: number) {
       case "encounter":
         beginEncounter(ev.enemyId, ev.initiator, now);
         break;
+      case "interact": {
+        // Holding a direction keeps bumping; only react to the first touch.
+        if (ev.featureId === lastTouched) break;
+        lastTouched = ev.featureId;
+        const r = interact(session, ev.featureId);
+        say(r.message, r.discovered ? 10000 : 6000);
+        break;
+      }
       case "rest":
         if (session.party.some((m) => m.hp < m.maxHp)) {
           restoreParty(session);
@@ -185,14 +233,18 @@ function frame(now: number) {
       handle(stepEnemies(world), now);
     }
   }
-  if (mode !== "battle") {
+  if (mode !== "battle" && mode !== "menu") {
     const enemies = new Map<string, Pos>();
     for (const e of world.enemies) {
       const t = enemyTweens.get(e.id);
       if (t) enemies.set(e.id, t.pos(now));
     }
     while (effects.length && now - effects[0]!.start > 600) effects.shift();
-    drawFrame(ctx, { world, player: playerTween.pos(now), enemies, effects, timeMs: now });
+    drawFrame(ctx, {
+      world, player: playerTween.pos(now), enemies, effects, timeMs: now,
+      fresh: freshFeatures(),
+      featureColor: (f) => JOBS[f.job]?.color ?? "#d9d3e6",
+    });
   }
   requestAnimationFrame(frame);
 }

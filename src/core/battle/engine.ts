@@ -16,6 +16,7 @@ import {
   onGrid,
   sameTile,
   shapeTiles,
+  sideTiles,
   tileOf,
   unitAt,
   type ShapeResult,
@@ -57,16 +58,19 @@ export function createBattle(setup: BattleSetup, content: BattleContent, seed: n
       prefers: [...s.prefers],
       resist: { ...(s.resist ?? {}) },
       mobile: s.mobile ?? false,
+      traits: s.traits ?? {},
       glyph: s.glyph,
       color: s.color,
       job: s.job,
       kind: s.kind,
+      passives: s.passives,
       stun: 0,
       guard: false,
       taunt: false,
       cooldowns: {},
       moved: false,
       acted: false,
+      windSpent: false,
     };
   });
   const seen = new Set<string>();
@@ -141,7 +145,10 @@ export function damageAmount(user: Unit | null, target: Unit, power: number, ele
 }
 
 export function skillPower(user: Unit, skill: SkillDef, target: Unit): number {
-  return damageAmount(user, target, skill.power ?? 0, skill.element ?? "physical");
+  const element = skill.element ?? "physical";
+  if (!skill.power) return 0;
+  const bonus = (user.traits.elementBonus?.[element] ?? 0) + (user.traits.shapeBonus?.[skill.shape] ?? 0);
+  return damageAmount(user, target, skill.power + bonus, element);
 }
 
 export type UsableResult = { ok: true } | { ok: false; reason: string };
@@ -159,10 +166,24 @@ export function depthName(d: number): string {
   return ["front", "middle", "back"][d] ?? `${d}`;
 }
 
-/** Tiles a party member may step to: one orthogonal step on its own grid (swapping with an ally). */
+/**
+ * Tiles a party member may step to on its own grid (stepping onto an ally swaps).
+ * Default is one orthogonal tile; the Movement slot can widen it.
+ */
 export function legalMoves(state: BattleState, unit: Unit): Tile[] {
   if (state.phase !== "player" || unit.side !== "party" || unit.moved || unit.acted || unit.hp <= 0) return [];
-  return neighbours(tileOf(unit));
+  const here = tileOf(unit);
+  switch (unit.traits.move ?? "step") {
+    case "step":
+      return neighbours(here);
+    case "blink":
+      return sideTiles(unit.side).filter((t) => !sameTile(t, here));
+    case "stride":
+      return sideTiles(unit.side).filter((t) => {
+        const d = Math.abs(t.depth - here.depth) + Math.abs(t.lane - here.lane);
+        return d >= 1 && d <= 2;
+      });
+  }
 }
 
 /** Where an intent's anchor currently is (tracks a taunting unit). */
@@ -282,10 +303,15 @@ function performSkill(state: BattleState, user: Unit, skill: SkillDef, anchor: T
     state.log.push({ type: "miss", actorId: user.id, skillId: skill.id });
   }
 
+  const struck: Unit[] = [];
   for (const t of targets) {
-    if (skill.power) dealDamage(state, t, skillPower(user, skill, t), user.id, skill.element ?? "physical");
+    if (skill.power) {
+      const hpBefore = t.hp;
+      dealDamage(state, t, skillPower(user, skill, t), user.id, skill.element ?? "physical");
+      if (t.side !== user.side && t.hp < hpBefore) struck.push(t);
+    }
     if (skill.heal && t.hp > 0) {
-      const amount = Math.min(skill.heal, t.maxHp - t.hp);
+      const amount = Math.min(skill.heal + (user.traits.healBonus ?? 0), t.maxHp - t.hp);
       t.hp += amount;
       state.log.push({ type: "heal", unitId: t.id, amount });
     }
@@ -311,6 +337,22 @@ function performSkill(state: BattleState, user: Unit, skill: SkillDef, anchor: T
       skill.displace === "back" ? -u.depth : skill.displace === "forward" ? u.depth : dir === "up" ? u.lane : -u.lane;
     movers.sort((a, b) => key(a) - key(b));
     for (const m of movers) displaceUnit(state, m, skill.displace, dir, skill.swapOnBlock);
+  }
+
+  for (const t of struck) react(state, t, user);
+}
+
+/** Reactions fire after the triggering skill has fully resolved. */
+function react(state: BattleState, reactor: Unit, attacker: Unit): void {
+  if (reactor.hp <= 0 || attacker.hp <= 0) return;
+  const tr = reactor.traits;
+  if (tr.counter) {
+    state.log.push({ type: "reaction", unitId: reactor.id, trait: "counter", targetId: attacker.id });
+    dealDamage(state, attacker, damageAmount(null, attacker, tr.counter.power, tr.counter.element), reactor.id, tr.counter.element);
+  }
+  if (tr.repel && attacker.hp > 0) {
+    state.log.push({ type: "reaction", unitId: reactor.id, trait: "repel", targetId: attacker.id });
+    displaceUnit(state, attacker, "back");
   }
 }
 
@@ -343,6 +385,15 @@ function dealDamage(state: BattleState, target: Unit, amount: number, sourceId: 
   if (target.hp === 0) {
     state.log.push({ type: "death", unitId: target.id });
     cancelIntent(state, target.id);
+    return;
+  }
+  const wind = target.traits.secondWind;
+  if (wind && !target.windSpent && target.hp * 2 <= target.maxHp) {
+    target.windSpent = true;
+    const amount = Math.min(wind, target.maxHp - target.hp);
+    target.hp += amount;
+    state.log.push({ type: "reaction", unitId: target.id, trait: "secondWind" });
+    state.log.push({ type: "heal", unitId: target.id, amount });
   }
 }
 
@@ -353,6 +404,10 @@ function displaceUnit(
   dir?: LateralDir,
   swapOnBlock = false,
 ): void {
+  if (u.traits.steadfast) {
+    state.log.push({ type: "steadfast", unitId: u.id });
+    return;
+  }
   let depth = u.depth;
   let lane = u.lane;
   if (how === "back") depth += 1;
@@ -365,7 +420,7 @@ function displaceUnit(
     return;
   }
   const blocker = unitAt(state, { side: u.side, depth, lane });
-  if (blocker && swapOnBlock) {
+  if (blocker && swapOnBlock && !blocker.traits.steadfast) {
     blocker.depth = u.depth;
     blocker.lane = u.lane;
     u.depth = depth;
@@ -415,7 +470,9 @@ export function endTurn(state: BattleState, opts: EndTurnOptions = {}): void {
     for (const h of state.hazards) {
       const def = state.hazardDefs[h.kind]!;
       const u = unitAt(state, h.tile);
-      if (u) dealDamage(state, u, damageAmount(null, u, def.power, def.element), null, def.element);
+      if (u && !u.traits.hazardImmune?.includes(h.kind)) {
+        dealDamage(state, u, damageAmount(null, u, def.power, def.element), null, def.element);
+      }
     }
     state.hazards = state.hazards
       .map((h) => (h.turns === null ? h : { ...h, turns: h.turns - 1 }))

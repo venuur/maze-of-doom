@@ -216,7 +216,8 @@ export class BattleView {
       return;
     }
     title.textContent = `${sel.name} · ${sel.hp}/${sel.maxHp} HP · prefers ${sel.prefers.map(depthName).join("/")}`;
-    let html = `<div class="hint" style="margin-bottom:6px">${sel.acted ? "Done this round." : sel.moved ? "Moved. Choose a skill." : "Step to a blue tile (optional), then choose a skill."}</div><div class="skills">`;
+    let html = sel.passives?.length ? `<div class="hint" style="margin-bottom:4px">${sel.passives.join(" · ")}</div>` : "";
+    html += `<div class="hint" style="margin-bottom:6px">${sel.acted ? "Done this round." : sel.moved ? "Moved. Choose a skill." : "Step to a blue tile (optional), then choose a skill."}</div><div class="skills">`;
     for (const id of sel.skills) {
       const s = state.skills[id]!;
       const usable = sel.acted ? { ok: false as const, reason: "done" } : canUseSkill(state, sel, id);
@@ -410,6 +411,11 @@ function describe(state: BattleState, e: BattleEvent): string | null {
     case "miss": return `${n(e.actorId)}'s ${state.skills[e.skillId]!.name} hits nothing.`;
     case "death": return `${n(e.unitId)} falls.`;
     case "end": return e.result === "won" ? "Victory!" : "Defeat.";
+    case "reaction":
+      return e.trait === "counter" ? `${n(e.unitId)} counters ${n(e.targetId!)}!`
+        : e.trait === "repel" ? `${n(e.unitId)} repels ${n(e.targetId!)}!`
+        : `${n(e.unitId)} gets a second wind!`;
+    case "steadfast": return `${n(e.unitId)} holds firm.`;
   }
 }
 

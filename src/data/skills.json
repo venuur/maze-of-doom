@@ -22,6 +22,15 @@
   "ward":         { "name": "Ward",         "desc": "An ally takes half damage this round.",                                        "target": "ally", "shape": "single", "guard": true },
   "transpose":    { "name": "Transpose",    "desc": "Swap an enemy with whatever is in the lane above or below it.",              "target": "foe",  "shape": "single", "displace": "lateral", "swapOnBlock": true, "cooldown": 2 },
 
+  "aimed_shot":   { "name": "Aimed Shot",   "desc": "Pick off any enemy, over the heads of the front line. Back row only.",       "target": "foe",  "shape": "single", "from": [2], "power": 3 },
+  "caltrops":     { "name": "Caltrops",     "desc": "Scatter spikes on any enemy tile for 3 rounds. Mobile enemies avoid them.",  "target": "foe",  "shape": "single", "emptyOk": true, "hazard": { "kind": "spikes", "turns": 3 } },
+  "arrow_rain":   { "name": "Arrow Rain",   "desc": "Arrows fall on an entire enemy lane.",                                       "target": "foe",  "shape": "lane",   "power": 2, "cooldown": 2 },
+  "pinning_shot": { "name": "Pinning Shot", "desc": "Pin an enemy in place: stuns it this round and next. Back row only.",       "target": "foe",  "shape": "single", "from": [2], "power": 2, "stun": 1, "cooldown": 3 },
+
+  "flame_lunge":   { "name": "Flame Lunge",   "desc": "A burning thrust through an enemy and the tile behind it.",               "target": "foe", "shape": "behind", "from": [0, 1], "reach": [0, 1], "power": 3, "element": "fire" },
+  "searing_hook":  { "name": "Searing Hook",  "desc": "A white-hot chain down your lane. Burns and pulls the first thing it hits.", "target": "foe", "shape": "line", "power": 2, "element": "fire", "displace": "forward" },
+  "blazing_sweep": { "name": "Blazing Sweep", "desc": "Fire across the whole enemy front row, driving it back.",                  "target": "foe", "shape": "column", "from": [0, 1], "reach": [0], "power": 2, "element": "fire", "displace": "back", "cooldown": 2 },
+
   "slam":         { "name": "Slam",         "desc": "Charges down its lane into the first thing in the way.",                      "target": "foe",  "shape": "line",   "power": 4 },
   "glob":         { "name": "Glob",         "desc": "Lobs ooze at one tile.",                                                       "target": "foe",  "shape": "single", "power": 3 },
   "ember_rain":   { "name": "Ember Rain",   "desc": "Embers fall in a cross.",                                                     "target": "foe",  "shape": "cross",  "power": 3, "element": "fire", "cooldown": 2 },

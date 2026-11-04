@@ -4,8 +4,8 @@ import { endTurn } from "../src/core/battle/engine";
 import { createWorld, movePlayer } from "../src/core/world";
 import { loadZone } from "../src/core/zone";
 import { ENEMY_KINDS, TILES, ZONES, getZone } from "../src/data";
-import { BATTLE_CONTENT, ENCOUNTERS, buildEncounter } from "../src/data/battle";
-import { createSession, encounterIdFor, finishBattle, startEncounter } from "../src/game/session";
+import { BATTLE_CONTENT, ENCOUNTERS, buildEncounter, encounterXp } from "../src/data/battle";
+import { createSession, encounterIdFor, finishBattle, interact, startEncounter } from "../src/game/session";
 
 describe("instant win", () => {
   it("a lone slime is an instant win for the starting party", () => {
@@ -110,7 +110,7 @@ describe("battle outcomes", () => {
 
   it("downed members start the next battle down", () => {
     const s = createSession("antechamber", 3);
-    s.party[2]!.hp = 0;
+    s.party.find((m) => m.primary === "pyromancer")!.hp = 0;
     const r = startEncounter(s, "warden-1");
     if (r.kind !== "battle") throw new Error("expected battle");
     expect(r.battle.units.find((u) => u.job === "pyromancer")!.hp).toBe(0);
@@ -127,5 +127,86 @@ describe("shrine", () => {
     );
     const w = createWorld(zone, ENEMY_KINDS, 1);
     expect(movePlayer(w, "right").map((e) => e.type)).toEqual(["moved", "rest"]);
+  });
+});
+
+describe("job progression in a session", () => {
+  it("starts with three characters in the three starter jobs", () => {
+    const s = createSession("antechamber", 1);
+    expect(s.party.map((m) => m.primary)).toEqual(["vanguard", "pyromancer", "mystic"]);
+    expect([...s.discovered].sort()).toEqual(["mystic", "pyromancer", "vanguard"]);
+  });
+
+  it("victory gives job XP to survivors only", () => {
+    const s = createSession("antechamber", 3);
+    const r = startEncounter(s, "slime-1");
+    if (r.kind !== "battle") throw new Error("expected battle");
+    for (const u of r.battle.units) if (u.side === "foe") u.hp = 0;
+    r.battle.units.find((u) => u.id === "burr")!.hp = 0;
+    r.battle.phase = "won";
+    const msg = finishBattle(s, "slime-1", r.battle, "won");
+    const xp = encounterXp("slime_pack");
+    expect(s.party.find((m) => m.id === "wren")!.jobXp.vanguard).toBe(xp);
+    expect(s.party.find((m) => m.id === "burr")!.jobXp.mystic).toBe(0);
+    expect(msg).toMatch(/Wren reaches Vanguard Lv2/);
+  });
+
+  it("instant wins give XP too", () => {
+    const s = createSession("antechamber", 1);
+    const r = startEncounter(s, "slime-2");
+    expect(r.kind).toBe("instant");
+    expect(s.party.every((m) => m.jobXp[m.primary] === encounterXp("lone_slime"))).toBe(true);
+  });
+
+  it("retreat and defeat give no XP", () => {
+    const s = createSession("antechamber", 3);
+    const r = startEncounter(s, "slime-1");
+    if (r.kind !== "battle") throw new Error("expected battle");
+    finishBattle(s, "slime-1", r.battle, "retreat");
+    expect(s.party.every((m) => m.jobXp[m.primary] === 0)).toBe(true);
+  });
+
+  it("touching a job feature discovers its job once", () => {
+    const s = createSession("antechamber", 1);
+    const first = interact(s, "hermit-lancer");
+    expect(first.discovered).toBe("lancer");
+    expect(s.discovered.has("lancer")).toBe(true);
+    expect(interact(s, "hermit-lancer").discovered).toBeUndefined();
+  });
+
+  it("the Antechamber holds both discoverable jobs", () => {
+    const jobs = getZone("antechamber").features.map((f) => f.job).sort();
+    expect(jobs).toEqual(["lancer", "ranger"]);
+  });
+});
+
+describe("features on the map", () => {
+  const zone = () =>
+    loadZone(
+      {
+        id: "t", name: "t", recipe: { theme: "", twist: "", landmark: "", secret: "", story: "" },
+        start: { x: 1, y: 1 }, map: ["#####", "#...#", "#####"], enemies: [],
+        features: [{ id: "h", kind: "job", job: "lancer", x: 2, y: 1, name: "H", text: "hi", look: "hermit" }],
+      },
+      TILES,
+    );
+
+  it("bumping a feature interacts instead of moving", () => {
+    const w = createWorld(zone(), ENEMY_KINDS, 1);
+    expect(movePlayer(w, "right")).toEqual([{ type: "interact", featureId: "h" }]);
+    expect(w.player.x).toBe(1);
+  });
+
+  it("features must stand on open tiles", () => {
+    expect(() =>
+      loadZone(
+        {
+          id: "t", name: "t", recipe: { theme: "", twist: "", landmark: "", secret: "", story: "" },
+          start: { x: 1, y: 1 }, map: ["###", "#.#", "###"], enemies: [],
+          features: [{ id: "h", kind: "job", job: "lancer", x: 0, y: 0, name: "H", text: "hi", look: "hermit" }],
+        },
+        TILES,
+      ),
+    ).toThrow(/feature h/);
   });
 });

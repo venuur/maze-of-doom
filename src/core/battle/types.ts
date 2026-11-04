@@ -53,6 +53,31 @@ export interface SkillDef {
   cooldown?: number;
 }
 
+/**
+ * Passive effects from a unit's Reaction, Support and Movement slots.
+ * Resolved from ability data before battle; the engine only knows these fields.
+ */
+export interface UnitTraits {
+  /** Reaction: when hit by an opposing skill, deal this damage back to the attacker. */
+  counter?: { power: number; element: string };
+  /** Reaction: when hit by an opposing skill, shove the attacker back one tile. */
+  repel?: boolean;
+  /** Reaction: once per battle, on dropping to half HP or less, heal this much. */
+  secondWind?: number;
+  /** Support: +N power to skills of an element. */
+  elementBonus?: Record<string, number>;
+  /** Support: +N power to skills of a shape. */
+  shapeBonus?: Partial<Record<Shape, number>>;
+  /** Support: healing this unit does restores N more. */
+  healBonus?: number;
+  /** Support: cannot be pushed, pulled, shoved or swapped. */
+  steadfast?: boolean;
+  /** Movement: hazards of these kinds don't hurt this unit. */
+  hazardImmune?: string[];
+  /** Movement: step rule. Default = one orthogonal tile. blink = any tile on own grid; stride = up to two tiles. */
+  move?: "step" | "blink" | "stride";
+}
+
 export interface UnitSpec {
   id: string;
   name: string;
@@ -69,24 +94,30 @@ export interface UnitSpec {
   resist?: Record<string, number>;
   /** Foes only: may step one tile when declaring an intent. */
   mobile?: boolean;
+  traits?: UnitTraits;
   /** Presentation hints (ignored by the engine). */
   glyph?: string;
   color?: string;
   job?: string;
   kind?: string;
+  /** Equipped passives, e.g. "Reaction: Counter". */
+  passives?: string[];
 }
 
-export interface Unit extends Required<Omit<UnitSpec, "glyph" | "color" | "job" | "kind">> {
+export interface Unit extends Required<Omit<UnitSpec, "glyph" | "color" | "job" | "kind" | "passives">> {
   glyph?: string;
   color?: string;
   job?: string;
   kind?: string;
+  passives?: string[];
   stun: number;
   guard: boolean;
   taunt: boolean;
   cooldowns: Record<string, number>;
   moved: boolean;
   acted: boolean;
+  /** Second Wind already spent this battle. */
+  windSpent: boolean;
 }
 
 export interface Intent {
@@ -130,6 +161,8 @@ export type BattleEvent =
   | { type: "hazard"; tile: Tile; kind: string }
   | { type: "miss"; actorId: string; skillId: string }
   | { type: "death"; unitId: string }
+  | { type: "reaction"; unitId: string; trait: "counter" | "repel" | "secondWind"; targetId?: string }
+  | { type: "steadfast"; unitId: string }
   | { type: "end"; result: "won" | "lost" };
 
 export interface BattleState {

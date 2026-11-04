@@ -1,6 +1,60 @@
 {
-  "vanguard":   { "name": "Vanguard",   "desc": "Front-line tank. Redirects and absorbs enemy attacks.",            "hp": 16, "prefers": [0],    "glyph": "V", "color": "#4a7bd8", "skills": ["strike", "shield_bash", "taunt", "brace", "rampart"] },
-  "lancer":     { "name": "Lancer",     "desc": "Mid-row skirmisher. Pulls, pushes and shoves enemies around.",      "hp": 11, "prefers": [1],    "glyph": "L", "color": "#3fae8c", "skills": ["jab", "hook", "lunge", "sweep", "shunt"] },
-  "pyromancer": { "name": "Pyromancer", "desc": "Back-row damage. Lines, columns, crosses and burning ground.",      "hp": 9,  "prefers": [2],    "glyph": "P", "color": "#e0633a", "skills": ["firebolt", "flame_pillar", "scorch", "detonate"] },
-  "mystic":     { "name": "Mystic",     "desc": "Control and support. Cancels intents, heals, guards and swaps.",   "hp": 10, "prefers": [1, 2], "glyph": "M", "color": "#a06ad8", "skills": ["mend", "silence", "daze", "ward", "transpose"] }
+  "vanguard": {
+    "name": "Vanguard", "desc": "Front-line tank. Redirects and absorbs enemy attacks.",
+    "hp": 16, "prefers": [0], "glyph": "V", "color": "#4a7bd8", "unlock": "starter",
+    "abilities": [
+      { "id": "strike", "level": 1 }, { "id": "brace", "level": 1 },
+      { "id": "taunt", "level": 2 }, { "id": "counter", "level": 2 },
+      { "id": "shield_bash", "level": 3 }, { "id": "fortitude", "level": 3 },
+      { "id": "rampart", "level": 4 }
+    ]
+  },
+  "pyromancer": {
+    "name": "Pyromancer", "desc": "Back-row damage. Lines, columns, crosses and burning ground.",
+    "hp": 9, "prefers": [2], "glyph": "P", "color": "#e0633a", "unlock": "starter",
+    "abilities": [
+      { "id": "firebolt", "level": 1 }, { "id": "scorch", "level": 1 },
+      { "id": "flame_pillar", "level": 2 }, { "id": "kindling", "level": 2 },
+      { "id": "ember_walk", "level": 3 }, { "id": "detonate", "level": 3 }
+    ]
+  },
+  "mystic": {
+    "name": "Mystic", "desc": "Control and support. Cancels intents, heals, guards and swaps.",
+    "hp": 10, "prefers": [1, 2], "glyph": "M", "color": "#a06ad8", "unlock": "starter",
+    "abilities": [
+      { "id": "mend", "level": 1 }, { "id": "ward", "level": 1 },
+      { "id": "silence", "level": 2 }, { "id": "blink", "level": 2 },
+      { "id": "daze", "level": 3 }, { "id": "second_wind", "level": 3 },
+      { "id": "transpose", "level": 4 }, { "id": "devotion", "level": 4 }
+    ]
+  },
+  "lancer": {
+    "name": "Lancer", "desc": "Mid-row skirmisher. Pulls, pushes and shoves enemies around.",
+    "hp": 11, "prefers": [1], "glyph": "L", "color": "#3fae8c", "unlock": "discover",
+    "abilities": [
+      { "id": "jab", "level": 1 }, { "id": "hook", "level": 1 },
+      { "id": "shunt", "level": 2 }, { "id": "anchor", "level": 2 },
+      { "id": "lunge", "level": 3 }, { "id": "repel", "level": 3 },
+      { "id": "sweep", "level": 4 }, { "id": "stride", "level": 4 }
+    ]
+  },
+  "ranger": {
+    "name": "Ranger", "desc": "Back-row marksman. Picks targets anywhere and denies ground with traps.",
+    "hp": 10, "prefers": [2], "glyph": "R", "color": "#c9b458", "unlock": "discover",
+    "abilities": [
+      { "id": "aimed_shot", "level": 1 }, { "id": "caltrops", "level": 1 },
+      { "id": "arrow_rain", "level": 2 }, { "id": "deadeye", "level": 2 },
+      { "id": "pinning_shot", "level": 3 }, { "id": "stride", "level": 3 }
+    ]
+  },
+  "spellblade": {
+    "name": "Spellblade", "desc": "Hybrid of Lancer and Pyromancer. Burning reach weapons from the front and middle rows.",
+    "hp": 13, "prefers": [0, 1], "glyph": "S", "color": "#d8487a",
+    "unlock": { "hybrid": { "lancer": 2, "pyromancer": 2 } },
+    "abilities": [
+      { "id": "flame_lunge", "level": 1 }, { "id": "searing_hook", "level": 1 },
+      { "id": "blazing_sweep", "level": 2 }, { "id": "burning_riposte", "level": 2 },
+      { "id": "kindling", "level": 3 }
+    ]
+  }
 }

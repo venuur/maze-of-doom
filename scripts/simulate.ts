@@ -3,14 +3,19 @@
  * policies across many seeds and reports how much reading the telegraphs
  * and manipulating the board actually matters.
  *
- *   npm run sim            # 40 seeds
- *   npm run sim -- 200     # more seeds
+ *   npm run sim                    # starting party, 40 seeds
+ *   npm run sim -- 200             # more seeds
+ *   npm run sim -- 40 veteran      # party preset: start | lv2 | lv3 | veteran | hybrid
  */
 import { applyAction, createBattle, endTurn } from "../src/core/battle/engine";
 import { FULL_PLANNER, isDamageOnly, planTurn, type PlannerOptions } from "../src/core/battle/planner";
-import { BATTLE_CONTENT, ENCOUNTERS, JOBS, buildEncounter } from "../src/data/battle";
+import { BATTLE_CONTENT, ENCOUNTERS, JOBS, PARTY_PRESETS, buildEncounter, partySpecsOf } from "../src/data/battle";
 
 const SEEDS = Number(process.argv[2] ?? 40);
+const PRESET = process.argv[3] ?? "start";
+
+const PRESETS = PARTY_PRESETS;
+if (!PRESETS[PRESET]) throw new Error(`Unknown preset '${PRESET}' (${Object.keys(PRESETS).join(", ")})`);
 const MAX_ROUNDS = 30;
 
 const POLICIES: Record<string, PlannerOptions> = {
@@ -23,7 +28,7 @@ const POLICIES: Record<string, PlannerOptions> = {
 interface Result { won: boolean; rounds: number; hpLeft: number; skills: Record<string, number> }
 
 function run(encounter: string, opts: PlannerOptions, seed: number): Result {
-  const s = createBattle(buildEncounter(encounter), BATTLE_CONTENT, seed);
+  const s = createBattle(buildEncounter(encounter, partySpecsOf(PRESETS[PRESET]!())), BATTLE_CONTENT, seed);
   const maxHp = s.units.filter((u) => u.side === "party").reduce((a, u) => a + u.maxHp, 0);
   const skills: Record<string, number> = {};
   while (s.phase === "player" && s.round <= MAX_ROUNDS) {
@@ -59,8 +64,9 @@ for (const [id, enc] of Object.entries(ENCOUNTERS)) {
 }
 
 console.log("\nSkill usage by the full planner (all encounters):");
-const all = Object.values(JOBS).flatMap((j) => j.skills);
+const all = [...new Set(Object.values(JOBS).flatMap((j) => j.abilities.map((a) => a.id)))].filter((id) => id in BATTLE_CONTENT.skills);
 const sum = Object.values(totalSkills).reduce((a, b) => a + b, 0);
+console.log(`Party preset: ${PRESET}`);
 for (const k of all.sort((a, b) => (totalSkills[b] ?? 0) - (totalSkills[a] ?? 0))) {
   const n = totalSkills[k] ?? 0;
   console.log(`  ${k.padEnd(14)} ${String(n).padStart(5)}  ${"#".repeat(Math.round((n / sum) * 120))}`);

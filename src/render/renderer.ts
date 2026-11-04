@@ -4,7 +4,7 @@
  */
 import { cameraOrigin } from "../core/camera";
 import { DELTA, type Dir, type World } from "../core/world";
-import { tileAt } from "../core/zone";
+import { tileAt, type Feature } from "../core/zone";
 
 export const TILE = 32;
 
@@ -28,6 +28,10 @@ export interface Frame {
   player: Pos;
   enemies: Map<string, Pos>;
   effects?: Effect[];
+  /** Features whose job is not yet discovered get a "!" marker. */
+  fresh?: ReadonlySet<string>;
+  /** Accent color per feature (e.g. its job's color). */
+  featureColor?: (f: Feature) => string;
   timeMs: number;
 }
 
@@ -62,6 +66,13 @@ export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
       if (!t) continue;
       drawTile(ctx, t.id, t.color, x * TILE - ox, y * TILE - oy, x, y, f);
     }
+  }
+
+  for (const feat of zone.features) {
+    const sx = feat.x * TILE - ox;
+    const sy = feat.y * TILE - oy;
+    if (sx < -TILE || sy < -TILE || sx > vw || sy > vh) continue;
+    drawFeature(ctx, feat, sx, sy, f.featureColor?.(feat) ?? "#d9d3e6", !!f.fresh?.has(feat.id), f.timeMs);
   }
 
   for (const e of world.enemies) {
@@ -270,6 +281,56 @@ function drawEnemy(
   const eyeY = sy + h + (shape === "diamond" ? bob - 3 : shape === "square" ? -2 : 3);
   ctx.fillRect(sx + h - 5, eyeY, 3, 3);
   ctx.fillRect(sx + h + 2, eyeY, 3, 3);
+}
+
+function drawFeature(ctx: CanvasRenderingContext2D, feat: Feature, sx: number, sy: number, color: string, fresh: boolean, now: number): void {
+  const h = TILE / 2;
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ellipse(ctx, sx + h, sy + TILE - 4, 10, 3);
+  ctx.strokeStyle = "#14111c";
+  ctx.lineWidth = 2;
+  if (feat.look === "hermit") {
+    // Robed figure with a staff.
+    ctx.fillStyle = "#5a5068";
+    ctx.beginPath();
+    ctx.moveTo(sx + h, sy + 8);
+    ctx.lineTo(sx + h + 9, sy + TILE - 4);
+    ctx.lineTo(sx + h - 9, sy + TILE - 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#cdb89a";
+    circle(ctx, sx + h, sy + 9, 5);
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx + h + 11, sy + 4);
+    ctx.lineTo(sx + h + 11, sy + TILE - 4);
+    ctx.stroke();
+  } else {
+    // A weapon lying on the ground, glinting.
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(sx + h, sy + h + 4, 10, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#e8e0c8";
+    ctx.beginPath();
+    ctx.moveTo(sx + h - 8, sy + h - 1);
+    ctx.lineTo(sx + h + 8, sy + h - 1);
+    ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+  if (fresh) {
+    const bob = Math.sin(now / 250) * 2;
+    ctx.fillStyle = "#f2d64b";
+    ctx.font = "bold 14px ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("!", sx + h, sy + 2 + bob);
+    ctx.textAlign = "start";
+  }
 }
 
 function drawPlayer(ctx: CanvasRenderingContext2D, sx: number, sy: number, facing: Dir): void {

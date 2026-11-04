@@ -8,7 +8,10 @@
     "secret": "A relic glints on an island in the lava pool to the northeast. Unreachable without Float.",
     "story": "Scratched into the west wall: 'It let me leave once. It wanted me to come back.'"
   },
-  "start": { "x": 3, "y": 9 },
+  "start": {
+    "x": 3,
+    "y": 9
+  },
   "map": [
     "################################",
     "#,,,,,,TT......#.......~~~~~~~~#",
@@ -36,10 +39,61 @@
     "##############E#################"
   ],
   "enemies": [
-    { "id": "slime-1",  "kind": "slime",  "x": 6,  "y": 3, "encounter": "slime_pack" },
-    { "id": "slime-2",  "kind": "slime",  "x": 14, "y": 20 },
-    { "id": "warden-1", "kind": "warden", "x": 15, "y": 4 },
-    { "id": "wisp-1",   "kind": "wisp",   "x": 20, "y": 9 },
-    { "id": "wisp-2",   "kind": "wisp",   "x": 27, "y": 15, "encounter": "gauntlet" }
+    {
+      "id": "slime-1",
+      "kind": "slime",
+      "x": 6,
+      "y": 3,
+      "encounter": "slime_pack"
+    },
+    {
+      "id": "slime-2",
+      "kind": "slime",
+      "x": 14,
+      "y": 20
+    },
+    {
+      "id": "warden-1",
+      "kind": "warden",
+      "x": 15,
+      "y": 4
+    },
+    {
+      "id": "wisp-1",
+      "kind": "wisp",
+      "x": 20,
+      "y": 9
+    },
+    {
+      "id": "wisp-2",
+      "kind": "wisp",
+      "x": 27,
+      "y": 15,
+      "encounter": "gauntlet"
+    }
+  ],
+  "features": [
+    {
+      "id": "hermit-lancer",
+      "kind": "job",
+      "job": "lancer",
+      "x": 8,
+      "y": 14,
+      "name": "The Old Lancer",
+      "look": "hermit",
+      "text": "An old soldier leans on a hooked spear. \"Everything here pushes. Learn to push back.\" You can now take up the Lancer job.",
+      "after": "The Old Lancer: \"Pull them in, shove them out. The grid is a weapon.\""
+    },
+    {
+      "id": "bow-ranger",
+      "kind": "job",
+      "job": "ranger",
+      "x": 18,
+      "y": 2,
+      "name": "A Ranger's Bow",
+      "look": "weapon",
+      "text": "At the edge of the lava pool, a bow rests on a bed of bones, still strung. Notches on the grip count something. You can now take up the Ranger job.",
+      "after": "The bow's previous owner counted to forty-one."
+    }
   ]
 }

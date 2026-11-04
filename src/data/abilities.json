@@ -1,0 +1,16 @@
+{
+  "counter":         { "name": "Counter",         "slot": "reaction", "desc": "When an enemy attack hits you, strike back for 2.",           "traits": { "counter": { "power": 2, "element": "physical" } } },
+  "repel":           { "name": "Repel",           "slot": "reaction", "desc": "When an enemy attack hits you, shove the attacker back a tile.", "traits": { "repel": true } },
+  "second_wind":     { "name": "Second Wind",     "slot": "reaction", "desc": "Once per battle, when you drop to half HP or less, heal 4.",   "traits": { "secondWind": 4 } },
+  "burning_riposte": { "name": "Burning Riposte", "slot": "reaction", "desc": "When an enemy attack hits you, burn the attacker for 3 fire.", "traits": { "counter": { "power": 3, "element": "fire" } } },
+
+  "fortitude":       { "name": "Fortitude",       "slot": "support",  "desc": "+4 max HP.",                                    "maxHp": 4 },
+  "kindling":        { "name": "Kindling",        "slot": "support",  "desc": "+1 power to fire skills.",                      "traits": { "elementBonus": { "fire": 1 } } },
+  "anchor":          { "name": "Anchor",          "slot": "support",  "desc": "You can't be pushed, pulled, shoved or swapped.", "traits": { "steadfast": true } },
+  "devotion":        { "name": "Devotion",        "slot": "support",  "desc": "Your heals restore 2 more HP.",                 "traits": { "healBonus": 2 } },
+  "deadeye":         { "name": "Deadeye",         "slot": "support",  "desc": "+1 power to single-target skills.",             "traits": { "shapeBonus": { "single": 1 } } },
+
+  "blink":           { "name": "Blink",           "slot": "movement", "desc": "Step to any tile on your grid.",                "traits": { "move": "blink" } },
+  "stride":          { "name": "Stride",          "slot": "movement", "desc": "Step up to two tiles.",                         "traits": { "move": "stride" } },
+  "ember_walk":      { "name": "Ember Walk",      "slot": "movement", "desc": "Fire and lava tiles don't hurt you.",          "traits": { "hazardImmune": ["fire", "lava"] } }
+}

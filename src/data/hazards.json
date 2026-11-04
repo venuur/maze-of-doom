@@ -1,4 +1,17 @@
 {
-  "fire": { "name": "Fire", "power": 2, "element": "fire" },
-  "lava": { "name": "Lava", "power": 3, "element": "fire" }
+  "fire": {
+    "name": "Fire",
+    "power": 2,
+    "element": "fire"
+  },
+  "lava": {
+    "name": "Lava",
+    "power": 3,
+    "element": "fire"
+  },
+  "spikes": {
+    "name": "Spikes",
+    "power": 2,
+    "element": "physical"
+  }
 }

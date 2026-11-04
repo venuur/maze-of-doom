@@ -149,4 +149,7 @@ The Maze is a character and the central antagonist / rival.
 | HP between fights (M3) | HP carries over. Victory revives downed members at 1 HP; retreat keeps them down. **Shrines** (rest tiles) restore the party. |
 | Retreat (M3) | Allowed any time in a map battle. Damage carries over, the enemy stays, and there's a 2.5s grace period on the map. |
 | Defeat (M3) | Implemented as decided: party restored, the Maze relocates it (to the zone entrance until there are more zones) with a line of commentary. |
+| Starting jobs & discovery (M4) | Three starter jobs (Vanguard, Pyromancer, Mystic), one per starting character. Two jobs are discoverable in the Antechamber for testing: Lancer and Ranger. One hybrid: Spellblade (Lancer Lv2 + Pyromancer Lv2). See [jobs.md](jobs.md). |
+| Job progression (M4) | Abilities are learned by job level (no point spending). XP goes to the survivors' primary jobs. Learned passives auto-equip into empty slots. Jobs can be changed freely outside battle. |
+| Starting party (M4) | Three characters: Wren (person, Vanguard), Sable (person, Pyromancer), Burr (creature, Mystic). More come from zone recruits later. |
 | Grid orientation (M2) | Depth 0 = front. Line shots hit the first unit in their path, **friend or foe** (enables "make them hit each other"). |

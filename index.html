@@ -33,6 +33,8 @@
       #party .bar i { display: block; height: 100%; background: #5fc46a; }
       #party .down { opacity: 0.45; text-decoration: line-through; }
       #battle-layer { position: fixed; inset: 0; z-index: 10; overflow: auto; background: #0b0910; padding: 16px; touch-action: auto; user-select: text; }
+      #menu-layer { position: fixed; inset: 0; z-index: 9; overflow: auto; background: #0b0910; padding: 16px; touch-action: auto; }
+      #party button { background: #2a2534; color: #d9d3e6; border: 1px solid #4a4458; border-radius: 4px; padding: 2px 8px; font: inherit; cursor: pointer; margin-left: auto; }
       #battle-layer > .bv { max-width: 980px; margin: 0 auto; }
       #battle-layer h1 { font-size: 16px; margin: 0; }
       #frame.flash canvas { animation: flash 450ms steps(6) forwards; }
@@ -44,7 +46,7 @@
     </style>
   </head>
   <body>
-    <header><span id="zone-name">…</span><span class="hint">Arrows / WASD to move · <a href="battle.html" style="color:#4a9ad8">battle sandbox →</a></span></header>
+    <header><span id="zone-name">…</span><span class="hint">Arrows / WASD to move · P for party · <a href="battle.html" style="color:#4a9ad8">battle sandbox →</a></span></header>
     <div id="party"></div>
     <div id="frame">
       <canvas id="game"></canvas>
@@ -56,6 +58,7 @@
       <span></span><button data-dir="down">▼</button><span></span>
     </div>
     <div id="battle-layer" hidden></div>
+    <div id="menu-layer" hidden></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

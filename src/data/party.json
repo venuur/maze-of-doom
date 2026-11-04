@@ -1,0 +1,8 @@
+{
+  "levels": [0, 8, 20, 36],
+  "starting": [
+    { "id": "wren",  "name": "Wren",  "kind": "person",   "job": "vanguard",   "depth": 0, "lane": 1 },
+    { "id": "sable", "name": "Sable", "kind": "person",   "job": "pyromancer", "depth": 2, "lane": 2 },
+    { "id": "burr",  "name": "Burr",  "kind": "creature", "job": "mystic",     "depth": 2, "lane": 0 }
+  ]
+}

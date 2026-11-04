@@ -6,29 +6,35 @@ import { assessEncounter, type Assessment } from "../core/battle/autoresolve";
 import { createBattle } from "../core/battle/engine";
 import type { BattleSetup, BattleState, UnitSpec } from "../core/battle/types";
 import { Rng } from "../core/rng";
+import { gainXp, type Character, type ProgressNote } from "../core/jobs";
 import { createWorld, removeEnemy, type Enemy, type World } from "../core/world";
 import { ENEMY_KINDS, getZone } from "../data";
-import { BATTLE_CONTENT, DEFAULT_PARTY, ENCOUNTERS, JOBS, buildEncounter, partyUnit } from "../data/battle";
-
-export interface PartyMember {
-  job: string;
-  hp: number;
-  maxHp: number;
-  /** Battle formation. */
-  depth: number;
-  lane: number;
-}
+import {
+  BATTLE_CONTENT,
+  ENCOUNTERS,
+  JOBS,
+  JOB_CONTENT,
+  PASSIVES,
+  SKILLS,
+  STARTER_JOBS,
+  buildEncounter,
+  encounterXp,
+  partySpecsOf,
+  startingParty,
+} from "../data/battle";
 
 export interface Session {
   world: World;
-  party: PartyMember[];
+  party: Character[];
+  /** Jobs found in the world (plus the starters). Any character may take these up. */
+  discovered: Set<string>;
   /** Overworld enemies beaten (permanently gone). */
   defeated: string[];
   battlesFought: number;
 }
 
 export type EncounterStart =
-  | { kind: "instant"; enemy: Enemy; assessment: Assessment; message: string }
+  | { kind: "instant"; enemy: Enemy; assessment: Assessment; message: string; notes: ProgressNote[] }
   | { kind: "battle"; enemy: Enemy; encounterId: string; battle: BattleState };
 
 export type BattleOutcome = "won" | "lost" | "retreat";
@@ -36,10 +42,8 @@ export type BattleOutcome = "won" | "lost" | "retreat";
 export function createSession(zoneId: string, seed: number): Session {
   return {
     world: createWorld(getZone(zoneId), ENEMY_KINDS, seed),
-    party: DEFAULT_PARTY.map((p) => {
-      const job = JOBS[p.job]!;
-      return { job: p.job, hp: job.hp, maxHp: job.hp, depth: p.depth, lane: p.lane };
-    }),
+    party: startingParty(),
+    discovered: new Set(STARTER_JOBS),
     defeated: [],
     battlesFought: 0,
   };
@@ -52,7 +56,7 @@ export function encounterIdFor(enemy: Enemy): string {
 }
 
 export function partySpecs(session: Session): UnitSpec[] {
-  return session.party.map((m) => ({ ...partyUnit(m.job, m.depth, m.lane), hp: m.hp, maxHp: m.maxHp }));
+  return partySpecsOf(session.party);
 }
 
 export function encounterSetup(session: Session, enemy: Enemy): BattleSetup {
@@ -78,7 +82,9 @@ export function startEncounter(session: Session, enemyId: string): EncounterStar
 
   if (assessment.instantWin) {
     defeatEnemy(session, enemy.id);
-    return { kind: "instant", enemy, assessment, message: `The ${name} is no match for you. It scatters at your touch.` };
+    const notes = awardXp(session, encounterIdFor(enemy), session.party.filter((m) => m.hp > 0));
+    const message = [`The ${name} is no match for you. It scatters at your touch.`, ...notes.map(describeNote(session))].join(" ");
+    return { kind: "instant", enemy, assessment, message, notes };
   }
   session.battlesFought += 1;
   return { kind: "battle", enemy, encounterId: encounterIdFor(enemy), battle: createBattle(setup, BATTLE_CONTENT, seed) };
@@ -89,10 +95,30 @@ function defeatEnemy(session: Session, enemyId: string) {
   session.defeated.push(enemyId);
 }
 
+/** Every surviving member gains XP in their primary job. */
+function awardXp(session: Session, encounterId: string, members: Character[]): ProgressNote[] {
+  const xp = encounterXp(encounterId);
+  return members.flatMap((m) => gainXp(JOB_CONTENT, m, xp, session.discovered));
+}
+
+const abilityName = (id: string) => SKILLS[id]?.name ?? PASSIVES[id]?.name ?? id;
+
+export function describeNote(session: Session) {
+  return (n: ProgressNote): string => {
+    const who = session.party.find((m) => m.id === n.charId)?.name ?? n.charId;
+    const job = JOBS[n.job]!.name;
+    switch (n.kind) {
+      case "level": return `${who} reaches ${job} Lv${n.level}!`;
+      case "learn": return `${who} learns ${abilityName(n.ability)}${n.equipped ? " (equipped)" : ""}.`;
+      case "hybrid": return `${who} unlocks the hybrid job ${job}!`;
+    }
+  };
+}
+
 /** Carry battle HP back to the party. */
 function syncPartyHp(session: Session, battle: BattleState, reviveDowned: boolean) {
   for (const m of session.party) {
-    const u = battle.units.find((x) => x.side === "party" && x.job === m.job);
+    const u = battle.units.find((x) => x.side === "party" && x.id === m.id);
     if (!u) continue;
     m.hp = u.hp > 0 ? u.hp : reviveDowned ? 1 : 0;
   }
@@ -114,10 +140,16 @@ export function finishBattle(session: Session, enemyId: string, battle: BattleSt
   const enemy = session.world.enemies.find((e) => e.id === enemyId);
   const name = enemy ? ENEMY_KINDS[enemy.kind]!.name : "enemy";
   switch (outcome) {
-    case "won":
+    case "won": {
+      // XP goes to whoever is still standing at the end.
+      const standing = session.party.filter((m) => battle.units.some((u) => u.side === "party" && u.id === m.id && u.hp > 0));
+      const encounterId = enemy ? encounterIdFor(enemy) : null;
       syncPartyHp(session, battle, true);
       defeatEnemy(session, enemyId);
-      return `Victory over the ${name}.`;
+      const notes = encounterId ? awardXp(session, encounterId, standing) : [];
+      const xp = encounterId ? ` +${encounterXp(encounterId)} job XP.` : "";
+      return [`Victory over the ${name}.${xp}`, ...notes.map(describeNote(session))].join(" ");
+    }
     case "retreat":
       syncPartyHp(session, battle, false);
       return `You break away from the ${name}.`;
@@ -146,6 +178,20 @@ function pickMazeLine(session: Session, lines: string[]): string {
   // Separate stream so flavor text never perturbs gameplay RNG.
   const rng = new Rng(session.battlesFought * 7919 + session.defeated.length);
   return rng.pick(lines);
+}
+
+/**
+ * Touch a map feature. A job source adds its job to the discovered set the
+ * first time. Returns the line to show.
+ */
+export function interact(session: Session, featureId: string): { message: string; discovered?: string } {
+  const f = session.world.zone.features.find((x) => x.id === featureId);
+  if (!f) throw new Error(`No feature '${featureId}'`);
+  if (f.kind === "job" && !session.discovered.has(f.job)) {
+    session.discovered.add(f.job);
+    return { message: `${f.text} (Open the party menu with P.)`, discovered: f.job };
+  }
+  return { message: f.after ?? f.text };
 }
 
 export function partyIsDown(session: Session): boolean {

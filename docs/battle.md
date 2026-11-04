@@ -43,6 +43,8 @@ Any intent can be **cancelled** (Silence) or **stunned** (Daze: cancels this rou
 
 ## Jobs
 
+> Since Milestone 4, jobs learn these skills by level, and reactions/supports/movement add passives. See [jobs.md](jobs.md). The table below is the full Lv-max kit of the original four.
+
 | Job | Prefers | Role | Skills |
 |---|---|---|---|
 | **Vanguard** | front | Tank / redirect | Strike, Shield Bash (push), Taunt, Brace, Rampart (guard lane) |
