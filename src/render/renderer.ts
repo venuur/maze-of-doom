@@ -1,0 +1,270 @@
+/**
+ * Canvas 2D renderer. Placeholder shapes only: everything visual lives here,
+ * so real art can replace it without touching game logic.
+ */
+import { cameraOrigin } from "../core/camera";
+import { DELTA, type Dir, type World } from "../core/world";
+import { tileAt } from "../core/zone";
+
+export const TILE = 32;
+
+/** Pixel position of an actor, interpolated between tiles. */
+export interface Pos {
+  px: number;
+  py: number;
+}
+
+export interface Frame {
+  world: World;
+  player: Pos;
+  enemies: Map<string, Pos>;
+  timeMs: number;
+}
+
+export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
+  const { world } = f;
+  const { zone } = world;
+  const vw = ctx.canvas.width;
+  const vh = ctx.canvas.height;
+  const cam = cameraOrigin(
+    f.player.px + TILE / 2,
+    f.player.py + TILE / 2,
+    vw,
+    vh,
+    zone.width * TILE,
+    zone.height * TILE,
+  );
+  const ox = Math.round(cam.x);
+  const oy = Math.round(cam.y);
+
+  ctx.fillStyle = "#14111c";
+  ctx.fillRect(0, 0, vw, vh);
+
+  // Only draw visible tiles.
+  const x0 = Math.max(0, Math.floor(ox / TILE));
+  const y0 = Math.max(0, Math.floor(oy / TILE));
+  const x1 = Math.min(zone.width - 1, Math.floor((ox + vw) / TILE));
+  const y1 = Math.min(zone.height - 1, Math.floor((oy + vh) / TILE));
+
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const t = tileAt(zone, x, y);
+      if (!t) continue;
+      drawTile(ctx, t.id, t.color, x * TILE - ox, y * TILE - oy, x, y, f);
+    }
+  }
+
+  for (const e of world.enemies) {
+    const pos = f.enemies.get(e.id);
+    const kind = world.enemyKinds[e.kind];
+    if (!pos || !kind) continue;
+    drawEnemy(ctx, kind.shape, kind.color, pos.px - ox, pos.py - oy, f.timeMs, e.id);
+  }
+
+  drawPlayer(ctx, f.player.px - ox, f.player.py - oy, world.player.facing);
+}
+
+function drawTile(
+  ctx: CanvasRenderingContext2D,
+  id: string,
+  color: string,
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+  f: Frame,
+): void {
+  ctx.fillStyle = color;
+  ctx.fillRect(sx, sy, TILE, TILE);
+  const h = TILE / 2;
+
+  switch (id) {
+    case "wall":
+      ctx.fillStyle = "#2a2534";
+      ctx.fillRect(sx, sy + TILE - 6, TILE, 6);
+      ctx.strokeStyle = "#4a4458";
+      ctx.strokeRect(sx + 0.5, sy + 0.5, TILE - 1, TILE - 7);
+      break;
+    case "floor":
+      if ((tx * 7 + ty * 13) % 5 === 0) {
+        ctx.fillStyle = "#7c7368";
+        ctx.fillRect(sx + 6, sy + 10, 4, 3);
+      }
+      break;
+    case "grass":
+      ctx.fillStyle = "#74a25b";
+      for (let i = 0; i < 3; i++) {
+        const gx = sx + ((tx * 11 + i * 9) % 24) + 4;
+        const gy = sy + ((ty * 7 + i * 13) % 20) + 8;
+        ctx.fillRect(gx, gy, 2, 5);
+      }
+      break;
+    case "tree":
+      ctx.fillStyle = "#5f8a4a";
+      ctx.fillRect(sx, sy, TILE, TILE);
+      ctx.fillStyle = "#5a3d24";
+      ctx.fillRect(sx + h - 3, sy + h + 4, 6, 10);
+      ctx.fillStyle = color;
+      circle(ctx, sx + h, sy + h - 2, 12);
+      break;
+    case "water":
+    case "lava": {
+      // Gentle shimmer so hazards read as alive.
+      const phase = Math.sin(f.timeMs / 500 + tx * 0.9 + ty * 0.6);
+      ctx.fillStyle = id === "lava" ? "#f07a2c" : "#4c86c0";
+      ctx.globalAlpha = 0.35 + 0.25 * phase;
+      ctx.fillRect(sx + 4, sy + 8 + phase * 3, 12, 3);
+      ctx.fillRect(sx + 16, sy + 20 - phase * 3, 10, 3);
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case "door":
+      ctx.fillStyle = "#6e5232";
+      ctx.fillRect(sx + 2, sy, 4, TILE);
+      ctx.fillRect(sx + TILE - 6, sy, 4, TILE);
+      break;
+    case "exit":
+      ctx.fillStyle = "#14111c";
+      ctx.fillRect(sx + 4, sy + 4, TILE - 8, TILE - 4);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(f.timeMs / 300);
+      ctx.fillRect(sx + 8, sy + 8, TILE - 16, TILE - 8);
+      ctx.globalAlpha = 1;
+      break;
+    case "statue":
+      drawStatue(ctx, sx, sy, tx, ty, f);
+      break;
+    case "relic": {
+      ctx.fillStyle = "#c2461f"; // sits on the lava island
+      ctx.fillRect(sx, sy, TILE, TILE);
+      ctx.fillStyle = "#6b4a2a";
+      ctx.fillRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
+      const glow = 0.6 + 0.4 * Math.sin(f.timeMs / 250);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = glow;
+      diamond(ctx, sx + h, sy + h, 8);
+      ctx.globalAlpha = 1;
+      break;
+    }
+  }
+}
+
+/** The Watching Statues: their eyes track the player. */
+function drawStatue(ctx: CanvasRenderingContext2D, sx: number, sy: number, tx: number, ty: number, f: Frame): void {
+  ctx.fillStyle = "#8a8074";
+  ctx.fillRect(sx, sy, TILE, TILE);
+  ctx.fillStyle = "#6f6a80";
+  ctx.fillRect(sx + 3, sy + 3, TILE - 6, TILE - 6);
+  ctx.fillStyle = "#b9b2c9";
+  ctx.fillRect(sx + 5, sy + 5, TILE - 10, TILE - 10);
+
+  const cx = tx * TILE + TILE / 2;
+  const cy = ty * TILE + TILE / 2;
+  const dx = f.player.px + TILE / 2 - cx;
+  const dy = f.player.py + TILE / 2 - cy;
+  const len = Math.hypot(dx, dy) || 1;
+  const lx = (dx / len) * 2.5;
+  const ly = (dy / len) * 2.5;
+  for (const ex of [-5, 5]) {
+    ctx.fillStyle = "#14111c";
+    circle(ctx, sx + TILE / 2 + ex, sy + TILE / 2 - 2, 3.5);
+    ctx.fillStyle = "#e84a5f";
+    circle(ctx, sx + TILE / 2 + ex + lx, sy + TILE / 2 - 2 + ly, 1.6);
+  }
+}
+
+function drawEnemy(
+  ctx: CanvasRenderingContext2D,
+  shape: string,
+  color: string,
+  sx: number,
+  sy: number,
+  timeMs: number,
+  id: string,
+): void {
+  const h = TILE / 2;
+  const seed = [...id].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const bob = Math.sin(timeMs / 220 + seed) * 2;
+
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ellipse(ctx, sx + h, sy + TILE - 5, 10, 3);
+
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#14111c";
+  ctx.lineWidth = 2;
+  switch (shape) {
+    case "blob":
+      ctx.beginPath();
+      ctx.ellipse(sx + h, sy + h + 4 + bob / 2, 11, 9 - bob / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    case "square":
+      ctx.fillRect(sx + 6, sy + 4, TILE - 12, TILE - 10);
+      ctx.strokeRect(sx + 6, sy + 4, TILE - 12, TILE - 10);
+      break;
+    case "diamond":
+      diamond(ctx, sx + h, sy + h + bob - 2, 10);
+      ctx.stroke();
+      break;
+    default:
+      circle(ctx, sx + h, sy + h, 10);
+  }
+  ctx.lineWidth = 1;
+
+  // Eyes
+  ctx.fillStyle = "#14111c";
+  const eyeY = sy + h + (shape === "diamond" ? bob - 3 : shape === "square" ? -2 : 3);
+  ctx.fillRect(sx + h - 5, eyeY, 3, 3);
+  ctx.fillRect(sx + h + 2, eyeY, 3, 3);
+}
+
+function drawPlayer(ctx: CanvasRenderingContext2D, sx: number, sy: number, facing: Dir): void {
+  const h = TILE / 2;
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ellipse(ctx, sx + h, sy + TILE - 4, 10, 3);
+
+  ctx.fillStyle = "#3d6fd6"; // body
+  ctx.strokeStyle = "#14111c";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(sx + 8, sy + 12, 16, 16, 4);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#f1c9a0"; // head
+  circle(ctx, sx + h, sy + 10, 7);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  // Facing marker
+  const { dx, dy } = DELTA[facing];
+  ctx.fillStyle = "#14111c";
+  if (dy !== 0 && dy > 0) {
+    ctx.fillRect(sx + h - 4, sy + 9, 2, 2);
+    ctx.fillRect(sx + h + 2, sy + 9, 2, 2);
+  } else if (dx !== 0) {
+    ctx.fillRect(sx + h + dx * 3 - 1, sy + 9, 2, 2);
+  }
+}
+
+function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number): void {
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function diamond(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.lineTo(x + r, y);
+  ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r, y);
+  ctx.closePath();
+  ctx.fill();
+}

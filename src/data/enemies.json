@@ -1,0 +1,5 @@
+{
+  "slime":   { "name": "Ash Slime",     "shape": "blob",     "color": "#7ec850", "behavior": "wander", "radius": 3 },
+  "warden":  { "name": "Stone Warden",  "shape": "square",   "color": "#a0a0b8", "behavior": "still",  "radius": 0 },
+  "wisp":    { "name": "Ember Wisp",    "shape": "diamond",  "color": "#ff9a3c", "behavior": "wander", "radius": 5 }
+}

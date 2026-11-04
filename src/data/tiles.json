@@ -1,0 +1,12 @@
+{
+  "#": { "id": "wall",   "solid": true,  "color": "#3b3548" },
+  ".": { "id": "floor",  "solid": false, "color": "#8a8074" },
+  ",": { "id": "grass",  "solid": false, "color": "#5f8a4a" },
+  "T": { "id": "tree",   "solid": true,  "color": "#2f5a2a" },
+  "w": { "id": "water",  "solid": true,  "color": "#2c5d8f", "gate": "swim" },
+  "~": { "id": "lava",   "solid": true,  "color": "#c2461f", "gate": "float" },
+  "D": { "id": "door",   "solid": false, "color": "#9c7a4a" },
+  "E": { "id": "exit",   "solid": false, "color": "#d8c27a", "exit": true },
+  "S": { "id": "statue", "solid": true,  "color": "#b9b2c9" },
+  "*": { "id": "relic",  "solid": false, "color": "#f2d64b" }
+}
