@@ -49,8 +49,8 @@ export function createBattle(setup: BattleSetup, content: BattleContent, seed: n
       id: s.id,
       name: s.name,
       side: s.side,
-      hp: s.hp,
-      maxHp: s.hp,
+      hp: Math.max(0, s.hp),
+      maxHp: s.maxHp ?? s.hp,
       depth: s.depth,
       lane: s.lane,
       skills: [...s.skills],
@@ -71,6 +71,7 @@ export function createBattle(setup: BattleSetup, content: BattleContent, seed: n
   });
   const seen = new Set<string>();
   for (const u of units) {
+    if (u.hp <= 0) continue; // downed units don't occupy tiles
     const k = `${u.side}:${u.depth}:${u.lane}`;
     if (seen.has(k)) throw new Error(`Two units on tile ${k}`);
     seen.add(k);

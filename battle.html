@@ -5,88 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Battle Sandbox</title>
     <style>
-      :root {
-        color-scheme: dark;
-        --bg: #0b0910; --panel: #16121f; --line: #2f2940; --text: #d9d3e6; --dim: #8d85a3;
-        --party: #1d2740; --foe: #34182024; --danger: #e84a5f; --move: #4a9ad8; --aim: #f2d64b;
-      }
+      :root { color-scheme: dark; }
       * { box-sizing: border-box; }
-      body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+      body { margin: 0; background: #0b0910; color: #d9d3e6; font: 14px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; }
       main { max-width: 980px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
       header { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
       header h1 { font-size: 16px; margin: 0 auto 0 0; }
-      a { color: var(--move); }
-      select, input, button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; }
-      button { cursor: pointer; }
-      button:hover:not(:disabled) { border-color: var(--dim); }
-      button:disabled { opacity: 0.4; cursor: default; }
-      button.primary { background: #3b2a55; border-color: #6a4c96; }
-      #desc { color: var(--dim); margin: 0; }
-      .status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-      .status b { color: var(--aim); }
-
-      #board { display: grid; grid-template-columns: 1fr 14px 1fr; align-items: center; }
-      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-      .side-label { grid-column: 1 / -1; text-align: center; color: var(--dim); font-size: 12px; }
-      .divider { height: 100%; border-left: 2px dashed var(--line); margin-left: 6px; }
-      .cell { position: relative; aspect-ratio: 1; border: 2px solid var(--line); border-radius: 6px; background: var(--party); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-      .grid.foe .cell { background: #2a1620; }
-      .cell.fire { background: repeating-linear-gradient(45deg, #5a2010, #5a2010 6px, #7a2f14 6px, #7a2f14 12px); }
-      .cell.lava { background: repeating-linear-gradient(-45deg, #8a2a10, #8a2a10 6px, #b8441a 6px, #b8441a 12px); }
-      .cell.path::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 6px, rgba(232, 74, 95, 0.18) 6px 12px); pointer-events: none; }
-      .cell.threat { border-color: var(--danger); box-shadow: inset 0 0 0 2px rgba(232, 74, 95, 0.35); }
-      .cell.focus { box-shadow: inset 0 0 0 4px rgba(232, 74, 95, 0.75); }
-      .cell.move { border-color: var(--move); border-style: dashed; cursor: pointer; }
-      .cell.anchor { border-color: var(--aim); border-style: dashed; cursor: pointer; }
-      .cell.preview { background-color: rgba(242, 214, 75, 0.25); background-blend-mode: screen; border-color: var(--aim); border-style: solid; }
-      .cell.selected { outline: 3px solid var(--aim); outline-offset: -3px; }
-      .cell .hz { position: absolute; left: 4px; bottom: 2px; font-size: 10px; color: #ffcf9a; }
-      .threats { position: absolute; top: 2px; right: 3px; display: flex; gap: 2px; }
-      .threats span { background: var(--danger); color: #fff; border-radius: 3px; padding: 0 4px; font-size: 11px; font-weight: bold; }
-
-      .unit { display: grid; justify-items: center; gap: 2px; width: 100%; padding: 2px; cursor: pointer; }
-      .token { width: 42%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-weight: bold; color: #0b0910; border: 2px solid #0b0910; font-size: clamp(11px, 2.6vw, 18px); }
-      .unit.foe .token { border-radius: 6px; }
-      .unit.done { opacity: 0.55; }
-      .unit .nm { font-size: clamp(9px, 1.9vw, 12px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-      .hp { width: 80%; height: 5px; background: #000; border-radius: 3px; overflow: hidden; }
-      .hp i { display: block; height: 100%; background: #5fc46a; }
-      .hp.low i { background: var(--danger); }
-      .badges { font-size: 10px; min-height: 12px; color: var(--aim); }
-      @media (max-width: 560px) {
-        main { padding: 12px; }
-        .grid { gap: 3px; }
-        .cell { border-width: 1px; }
-        .unit { gap: 1px; padding-top: 14px; }
-        .unit .nm { display: none; }
-        .token { width: 48%; }
-        .threats span { font-size: 9px; padding: 0 2px; }
-        .badges { font-size: 9px; }
-        .dmg { top: 2px; left: 3px; bottom: auto; right: auto; }
-      }
-      .dmg { position: absolute; bottom: 2px; right: 3px; color: var(--danger); font-weight: bold; font-size: 12px; }
-
-      .cols { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
-      @media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
-      section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
-      section h2 { font-size: 13px; margin: 0 0 8px; color: var(--dim); font-weight: normal; text-transform: uppercase; letter-spacing: 0.05em; }
-      .skills { display: grid; gap: 6px; }
-      .skill { text-align: left; display: grid; gap: 2px; }
-      .skill.active { border-color: var(--aim); }
-      .skill small { color: var(--dim); }
-      .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-      ol#intents { margin: 0; padding-left: 20px; }
-      ol#intents li { padding: 2px 0; cursor: default; }
-      ol#intents li:hover { color: #fff; }
-      #log { max-height: 220px; overflow: auto; font-size: 12px; color: var(--dim); }
-      #log div.r { color: var(--text); margin-top: 4px; }
-      .banner { text-align: center; font-size: 18px; padding: 12px; border-radius: 6px; }
-      .banner.won { background: #1f3a24; } .banner.lost { background: #3a1f24; }
-      .hint { color: var(--dim); font-size: 12px; }
+      a { color: #4a9ad8; }
+      .bv { display: grid; gap: 12px; }
+      @media (max-width: 560px) { main { padding: 12px; } }
     </style>
   </head>
   <body>
-    <main>
+    <main class="bv">
       <header>
         <h1>Maze of Doom: Battle Sandbox</h1>
         <select id="encounter"></select>
@@ -94,28 +25,8 @@
         <button id="reset">Reset</button>
         <a href="./">overworld →</a>
       </header>
-      <p id="desc"></p>
-      <div class="status"><span id="round"></span><span class="hint">Red = telegraphed enemy attacks (numbers = resolve order). Tap a party member, step (blue), then pick a skill.</span></div>
-      <div id="banner"></div>
-      <div id="board"></div>
-      <div class="cols">
-        <section>
-          <h2 id="panel-title">Party</h2>
-          <div id="panel"></div>
-          <div class="row" style="margin-top: 10px">
-            <button id="undo">Undo</button>
-            <button id="auto" title="Let the planner AI finish this round's actions">Auto</button>
-            <button id="end" class="primary">End turn ▶</button>
-          </div>
-        </section>
-        <section>
-          <h2>Enemy intents</h2>
-          <ol id="intents"></ol>
-          <h2 style="margin-top: 12px">Log</h2>
-          <div id="log"></div>
-        </section>
-      </div>
+      <div id="battle"></div>
     </main>
-    <script type="module" src="/src/battle/ui.ts"></script>
+    <script type="module" src="/src/battle/sandbox.ts"></script>
   </body>
 </html>

@@ -145,4 +145,8 @@ The Maze is a character and the central antagonist / rival.
 | Defeat | **The Maze relocates the party** to another known zone, with commentary. XP, jobs, and the world are kept. |
 | Starting jobs (M2) | Claude's proposal, accepted: Vanguard, Lancer, Pyromancer, Mystic. See [battle.md](battle.md). Numbers are tuned by headless simulation, not final. |
 | Battle turn rule (M2) | Each unit may step once **before** acting; acting ends its turn. Prevents trivial "attack, then dodge". |
+| Instant win (M3) | No power formula. On touch, the battle is **simulated headlessly with the planner AI**; if the party would win within **2 rounds losing ≤10% HP**, the enemy is defeated on the spot. Tunable in `src/core/battle/autoresolve.ts`. |
+| HP between fights (M3) | HP carries over. Victory revives downed members at 1 HP; retreat keeps them down. **Shrines** (rest tiles) restore the party. |
+| Retreat (M3) | Allowed any time in a map battle. Damage carries over, the enemy stays, and there's a 2.5s grace period on the map. |
+| Defeat (M3) | Implemented as decided: party restored, the Maze relocates it (to the zone entrance until there are more zones) with a line of commentary. |
 | Grid orientation (M2) | Depth 0 = front. Line shots hit the first unit in their path, **friend or foe** (enables "make them hit each other"). |

@@ -56,12 +56,13 @@ export function foeUnit(kind: string, depth: number, lane: number, id: string): 
   };
 }
 
-export function buildEncounter(id: string): BattleSetup {
+/** Build an encounter's battle setup. `party` overrides the default test party. */
+export function buildEncounter(id: string, party?: UnitSpec[]): BattleSetup {
   const e = ENCOUNTERS[id];
   if (!e) throw new Error(`Unknown encounter '${id}'`);
   const counts: Record<string, number> = {};
   return {
-    party: (e.party ?? DEFAULT_PARTY).map((p) => partyUnit(p.job, p.depth, p.lane)),
+    party: party ?? (e.party ?? DEFAULT_PARTY).map((p) => partyUnit(p.job, p.depth, p.lane)),
     foes: e.foes.map((f) => {
       counts[f.kind] = (counts[f.kind] ?? 0) + 1;
       return foeUnit(f.kind, f.depth, f.lane, `${f.kind}-${counts[f.kind]}`);

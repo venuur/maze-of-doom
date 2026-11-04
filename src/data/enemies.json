@@ -1,10 +1,10 @@
 {
-  "slime":  { "name": "Ash Slime",    "shape": "blob",    "color": "#7ec850", "behavior": "wander", "radius": 3,
+  "slime":  { "name": "Ash Slime", "encounter": "lone_slime",    "shape": "blob",    "color": "#7ec850", "behavior": "wander", "radius": 3,
               "battle": { "hp": 11,  "prefers": [0], "mobile": true,  "skills": ["slam", "glob"],         "resist": { "fire": 0.5 } } },
-  "warden": { "name": "Stone Warden", "shape": "square",  "color": "#a0a0b8", "behavior": "still",  "radius": 0,
+  "warden": { "name": "Stone Warden", "encounter": "archer_nest", "shape": "square",  "color": "#a0a0b8", "behavior": "still",  "radius": 0,
               "battle": { "hp": 22, "prefers": [0], "mobile": false, "skills": ["crush", "quake"],       "resist": { "physical": 0.5, "fire": 1.5 } } },
-  "wisp":   { "name": "Ember Wisp",   "shape": "diamond", "color": "#ff9a3c", "behavior": "wander", "radius": 5,
+  "wisp":   { "name": "Ember Wisp", "encounter": "ember_court",   "shape": "diamond", "color": "#ff9a3c", "behavior": "wander", "radius": 5,
               "battle": { "hp": 6,  "prefers": [2], "mobile": true,  "skills": ["ember_rain", "flicker"], "resist": { "fire": 0 } } },
-  "archer": { "name": "Bone Archer",  "shape": "triangle","color": "#e8e0c8", "behavior": "still",  "radius": 0,
+  "archer": { "name": "Bone Archer", "encounter": "archer_nest",  "shape": "triangle","color": "#e8e0c8", "behavior": "still",  "radius": 0,
               "battle": { "hp": 9,  "prefers": [2], "mobile": false, "skills": ["arrow", "volley"] } }
 }

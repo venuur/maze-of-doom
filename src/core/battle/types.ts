@@ -57,7 +57,10 @@ export interface UnitSpec {
   id: string;
   name: string;
   side: Side;
+  /** Current HP at battle start. */
   hp: number;
+  /** Defaults to hp. Lets HP carry over between battles. */
+  maxHp?: number;
   depth: number;
   lane: number;
   skills: string[];
@@ -78,7 +81,6 @@ export interface Unit extends Required<Omit<UnitSpec, "glyph" | "color" | "job" 
   color?: string;
   job?: string;
   kind?: string;
-  maxHp: number;
   stun: number;
   guard: boolean;
   taunt: boolean;

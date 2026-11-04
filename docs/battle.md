@@ -59,6 +59,18 @@ Any intent can be **cancelled** (Silence) or **stunned** (Daze: cancels this rou
 | Ember Wisp | 6 | Mobile, back. Ember Rain (cross), Flicker. **Fire immune** |
 | Bone Archer | 9 | Immobile, back. Arrow (line, friendly fire!), Volley (lane) |
 
+## From the map (Milestone 3)
+
+Each overworld enemy leads an encounter (`encounter` on the spawn, else its kind's default in `enemies.json`). On touch, `startEncounter` (`src/game/session.ts`) first runs `assessEncounter`: the planner plays the fight headlessly, and if it wins within 2 rounds losing at most 10% of current HP, the enemy is removed without a battle. Otherwise the battle view opens with the party's carried-over HP.
+
+| Antechamber enemy | Encounter |
+|---|---|
+| Ash Slime (south) | Lone Slime: instant win at full strength |
+| Ash Slime (northwest) | Slime Pack |
+| Stone Warden (north door) | Archer Nest |
+| Ember Wisp (center) | Ember Court |
+| Ember Wisp (east) | The Gauntlet |
+
 ## Balance simulation
 
 `npm run sim [seeds]` plays every encounter with four party policies (the planner is a greedy search with one round of lookahead, `src/core/battle/planner.ts`):

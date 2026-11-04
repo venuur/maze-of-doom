@@ -14,10 +14,20 @@ export interface Pos {
   py: number;
 }
 
+/** Short-lived visual effects (e.g. an instant-win poof). */
+export interface Effect {
+  kind: "poof";
+  px: number;
+  py: number;
+  start: number;
+  color: string;
+}
+
 export interface Frame {
   world: World;
   player: Pos;
   enemies: Map<string, Pos>;
+  effects?: Effect[];
   timeMs: number;
 }
 
@@ -62,6 +72,25 @@ export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
   }
 
   drawPlayer(ctx, f.player.px - ox, f.player.py - oy, world.player.facing);
+
+  for (const fx of f.effects ?? []) drawPoof(ctx, fx, fx.px - ox, fx.py - oy, f.timeMs);
+}
+
+function drawPoof(ctx: CanvasRenderingContext2D, fx: Effect, sx: number, sy: number, now: number): void {
+  const t = Math.min(1, (now - fx.start) / 600);
+  const h = TILE / 2;
+  ctx.globalAlpha = 1 - t;
+  ctx.fillStyle = fx.color;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const r = 4 + t * 18;
+    circle(ctx, sx + h + Math.cos(a) * r, sy + h + Math.sin(a) * r, 3 * (1 - t) + 1);
+  }
+  ctx.strokeStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(sx + h, sy + h, 6 + t * 14, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 function drawTile(
@@ -134,6 +163,21 @@ function drawTile(
     case "statue":
       drawStatue(ctx, sx, sy, tx, ty, f);
       break;
+    case "shrine": {
+      // A small rest shrine with a pulsing light.
+      ctx.fillStyle = "#5c5468";
+      ctx.fillRect(sx + 8, sy + 16, 16, 12);
+      ctx.fillStyle = "#7a7088";
+      ctx.fillRect(sx + 6, sy + 26, 20, 4);
+      const glow = 0.55 + 0.35 * Math.sin(f.timeMs / 400);
+      ctx.globalAlpha = glow;
+      ctx.fillStyle = "#9fe8ff";
+      circle(ctx, sx + h, sy + 11, 5);
+      ctx.globalAlpha = glow * 0.35;
+      circle(ctx, sx + h, sy + 11, 10);
+      ctx.globalAlpha = 1;
+      break;
+    }
     case "relic": {
       ctx.fillStyle = "#c2461f"; // sits on the lava island
       ctx.fillRect(sx, sy, TILE, TILE);
@@ -205,6 +249,15 @@ function drawEnemy(
       break;
     case "diamond":
       diamond(ctx, sx + h, sy + h + bob - 2, 10);
+      ctx.stroke();
+      break;
+    case "triangle":
+      ctx.beginPath();
+      ctx.moveTo(sx + h, sy + 4);
+      ctx.lineTo(sx + TILE - 6, sy + TILE - 6);
+      ctx.lineTo(sx + 6, sy + TILE - 6);
+      ctx.closePath();
+      ctx.fill();
       ctx.stroke();
       break;
     default:

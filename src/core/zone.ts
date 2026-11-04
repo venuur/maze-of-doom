@@ -7,6 +7,8 @@ export interface TileDef {
   /** Field ability that lets a character enter this otherwise-solid tile. */
   gate?: string;
   exit?: boolean;
+  /** Stepping here restores the party. */
+  rest?: boolean;
 }
 
 export type TileTable = Record<string, TileDef>;
@@ -24,6 +26,8 @@ export interface EnemySpawn {
   kind: string;
   x: number;
   y: number;
+  /** Battle encounter this enemy leads. Defaults to its kind's encounter. */
+  encounter?: string;
 }
 
 export interface ZoneData {

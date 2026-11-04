@@ -1,4 +1,9 @@
 {
+  "lone_slime": {
+    "name": "Lone Slime",
+    "desc": "A single slime. Your party outclasses it, so touching it on the map is an instant win.",
+    "foes": [{ "kind": "slime", "depth": 0, "lane": 1 }]
+  },
   "slime_pack": {
     "name": "Slime Pack",
     "desc": "Three slimes slam down their lanes. Learn to read and dodge lane attacks.",

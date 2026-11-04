@@ -8,5 +8,6 @@
   "D": { "id": "door",   "solid": false, "color": "#9c7a4a" },
   "E": { "id": "exit",   "solid": false, "color": "#d8c27a", "exit": true },
   "S": { "id": "statue", "solid": true,  "color": "#b9b2c9" },
+  "R": { "id": "shrine", "solid": false, "color": "#8a8074", "rest": true },
   "*": { "id": "relic",  "solid": false, "color": "#f2d64b" }
 }

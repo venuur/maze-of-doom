@@ -22,6 +22,8 @@ export interface EnemyKind {
   behavior: "wander" | "still";
   /** Max tiles (Chebyshev) an enemy will roam from its spawn. */
   radius: number;
+  /** Default battle encounter for this kind. */
+  encounter?: string;
   battle?: {
     hp: number;
     prefers: number[];
@@ -40,6 +42,7 @@ export interface Actor {
 export interface Enemy extends Actor {
   id: string;
   kind: string;
+  encounter?: string;
   homeX: number;
   homeY: number;
 }
@@ -60,7 +63,8 @@ export type WorldEvent =
   | { type: "turned"; who: "player" }
   | { type: "blocked" }
   | { type: "encounter"; enemyId: string; initiator: "player" | "enemy" }
-  | { type: "exit"; x: number; y: number };
+  | { type: "exit"; x: number; y: number }
+  | { type: "rest" };
 
 export function createWorld(zone: Zone, enemyKinds: Record<string, EnemyKind>, seed: number): World {
   for (const s of zone.spawns) {
@@ -72,6 +76,7 @@ export function createWorld(zone: Zone, enemyKinds: Record<string, EnemyKind>, s
     enemies: zone.spawns.map((s) => ({
       id: s.id,
       kind: s.kind,
+      encounter: s.encounter,
       x: s.x,
       y: s.y,
       homeX: s.x,
@@ -82,6 +87,10 @@ export function createWorld(zone: Zone, enemyKinds: Record<string, EnemyKind>, s
     abilities: new Set(),
     rng: new Rng(seed),
   };
+}
+
+export function removeEnemy(world: World, id: string): void {
+  world.enemies = world.enemies.filter((e) => e.id !== id);
 }
 
 export function enemyAt(world: World, x: number, y: number): Enemy | undefined {
@@ -106,7 +115,9 @@ export function movePlayer(world: World, dir: Dir): WorldEvent[] {
   p.x = nx;
   p.y = ny;
   const events: WorldEvent[] = [{ type: "moved", who: "player", fromX, fromY }];
-  if (tileAt(world.zone, nx, ny)?.exit) events.push({ type: "exit", x: nx, y: ny });
+  const tile = tileAt(world.zone, nx, ny);
+  if (tile?.exit) events.push({ type: "exit", x: nx, y: ny });
+  if (tile?.rest) events.push({ type: "rest" });
   return events;
 }
 
@@ -137,7 +148,8 @@ export function stepEnemies(world: World): WorldEvent[] {
     if (!withinRadius) continue;
     // Enemies don't use the party's field abilities.
     if (!isPassable(world.zone, nx, ny, NO_ABILITIES)) continue;
-    if (tileAt(world.zone, nx, ny)?.exit) continue;
+    const tile = tileAt(world.zone, nx, ny);
+    if (tile?.exit || tile?.rest) continue;
     if (enemyAt(world, nx, ny)) continue;
 
     const fromX = e.x;
