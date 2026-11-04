@@ -1,0 +1,33 @@
+{
+  "strike":       { "name": "Strike",       "desc": "A solid blow to an enemy in the front row.",                                   "target": "foe",  "shape": "single", "from": [0],    "reach": [0],    "power": 3 },
+  "shield_bash":  { "name": "Shield Bash",  "desc": "Hit a front-row enemy and shove it back one tile.",                           "target": "foe",  "shape": "single", "from": [0],    "reach": [0],    "power": 2, "displace": "back", "cooldown": 2 },
+  "taunt":        { "name": "Taunt",        "desc": "Aimed enemy attacks (single, cross, pair) are redirected onto you this round.", "target": "self", "shape": "self",   "taunt": true, "cooldown": 2 },
+  "brace":        { "name": "Brace",        "desc": "Take half damage this round.",                                                 "target": "self", "shape": "self",   "guard": true },
+  "rampart":      { "name": "Rampart",      "desc": "Everyone in your lane takes half damage this round.",                          "target": "ally", "shape": "ownLane", "from": [0], "guard": true, "cooldown": 3 },
+
+  "jab":          { "name": "Jab",          "desc": "Quick thrust at an enemy in the front or middle row.",                         "target": "foe",  "shape": "single", "from": [0, 1], "reach": [0, 1], "power": 2 },
+  "hook":         { "name": "Hook",         "desc": "Throw a chain down your lane. Pulls the first thing it hits one tile toward you.", "target": "foe", "shape": "line", "power": 1, "displace": "forward" },
+  "lunge":        { "name": "Lunge",        "desc": "Pierce an enemy and the tile behind it.",                                      "target": "foe",  "shape": "behind", "from": [0, 1], "reach": [0, 1], "power": 2 },
+  "sweep":        { "name": "Sweep",        "desc": "Hit the whole enemy front row and push it back.",                             "target": "foe",  "shape": "column", "from": [0, 1], "reach": [0],    "power": 1, "displace": "back", "cooldown": 2 },
+  "shunt":        { "name": "Shunt",        "desc": "Shove a front/middle enemy one lane up or down.",                                   "target": "foe",  "shape": "single", "reach": [0, 1], "power": 1, "displace": "lateral" },
+
+  "firebolt":     { "name": "Firebolt",     "desc": "Bolt down your lane. Hits the first unit in the way, ally or not.",            "target": "foe",  "shape": "line",   "power": 4, "element": "fire" },
+  "flame_pillar": { "name": "Flame Pillar", "desc": "Burn every lane at one depth.",                                               "target": "foe",  "shape": "column", "power": 2, "element": "fire", "cooldown": 2 },
+  "scorch":       { "name": "Scorch",       "desc": "Set any enemy tile ablaze for 3 rounds.",                                     "target": "foe",  "shape": "single", "emptyOk": true, "power": 1, "element": "fire", "hazard": { "kind": "fire", "turns": 3 } },
+  "detonate":     { "name": "Detonate",     "desc": "Explosion in a cross. Only from the back row.",                               "target": "foe",  "shape": "cross",  "from": [2], "power": 2, "element": "fire", "cooldown": 3 },
+
+  "mend":         { "name": "Mend",         "desc": "Restore 4 HP to an ally.",                                                     "target": "ally", "shape": "single", "heal": 4 },
+  "silence":      { "name": "Silence",      "desc": "Cancel an enemy's declared action.",                                          "target": "foe",  "shape": "single", "cancel": true, "cooldown": 2 },
+  "daze":         { "name": "Daze",         "desc": "Stun: cancels this round's action and the next.",                             "target": "foe",  "shape": "single", "power": 1, "stun": 1, "cooldown": 3 },
+  "ward":         { "name": "Ward",         "desc": "An ally takes half damage this round.",                                        "target": "ally", "shape": "single", "guard": true },
+  "transpose":    { "name": "Transpose",    "desc": "Swap an enemy with whatever is in the lane above or below it.",              "target": "foe",  "shape": "single", "displace": "lateral", "swapOnBlock": true, "cooldown": 2 },
+
+  "slam":         { "name": "Slam",         "desc": "Charges down its lane into the first thing in the way.",                      "target": "foe",  "shape": "line",   "power": 4 },
+  "glob":         { "name": "Glob",         "desc": "Lobs ooze at one tile.",                                                       "target": "foe",  "shape": "single", "power": 3 },
+  "ember_rain":   { "name": "Ember Rain",   "desc": "Embers fall in a cross.",                                                     "target": "foe",  "shape": "cross",  "power": 3, "element": "fire", "cooldown": 2 },
+  "flicker":      { "name": "Flicker",      "desc": "A darting flame at one tile.",                                                "target": "foe",  "shape": "single", "power": 3, "element": "fire" },
+  "quake":        { "name": "Quake",        "desc": "The ground heaves along one whole depth.",                                     "target": "foe",  "shape": "column", "power": 3, "cooldown": 2 },
+  "crush":        { "name": "Crush",        "desc": "A crushing fist at the front row.",                                           "target": "foe",  "shape": "single", "from": [0], "reach": [0], "power": 5 },
+  "arrow":        { "name": "Arrow",        "desc": "Shoots down its lane. Hits the first thing in the way, friend or foe.",       "target": "foe",  "shape": "line",   "power": 4 },
+  "volley":       { "name": "Volley",       "desc": "Arrows rain on an entire lane.",                                              "target": "foe",  "shape": "lane",   "power": 3, "cooldown": 2 }
+}

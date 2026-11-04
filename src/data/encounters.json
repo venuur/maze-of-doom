@@ -1,0 +1,47 @@
+{
+  "slime_pack": {
+    "name": "Slime Pack",
+    "desc": "Three slimes slam down their lanes. Learn to read and dodge lane attacks.",
+    "foes": [
+      { "kind": "slime", "depth": 0, "lane": 0 },
+      { "kind": "slime", "depth": 1, "lane": 1 },
+      { "kind": "slime", "depth": 0, "lane": 2 }
+    ]
+  },
+  "archer_nest": {
+    "name": "Archer Nest",
+    "desc": "Archers shoot down their lanes, hitting the first thing in the way. Pull or shove a friend into their line of fire.",
+    "foes": [
+      { "kind": "warden", "depth": 0, "lane": 1 },
+      { "kind": "slime",  "depth": 0, "lane": 0 },
+      { "kind": "archer", "depth": 2, "lane": 0 },
+      { "kind": "archer", "depth": 2, "lane": 2 }
+    ]
+  },
+  "ember_court": {
+    "name": "Ember Court",
+    "desc": "Fire-immune wisps behind a lava moat. Fire is useless against them; push the Warden into the lava.",
+    "foes": [
+      { "kind": "warden", "depth": 0, "lane": 1 },
+      { "kind": "wisp",   "depth": 2, "lane": 0 },
+      { "kind": "wisp",   "depth": 2, "lane": 2 }
+    ],
+    "hazards": [
+      { "tile": { "side": "foe", "depth": 1, "lane": 0 }, "kind": "lava", "turns": null },
+      { "tile": { "side": "foe", "depth": 1, "lane": 1 }, "kind": "lava", "turns": null },
+      { "tile": { "side": "foe", "depth": 1, "lane": 2 }, "kind": "lava", "turns": null },
+      { "tile": { "side": "party", "depth": 2, "lane": 1 }, "kind": "lava", "turns": null }
+    ]
+  },
+  "gauntlet": {
+    "name": "The Gauntlet",
+    "desc": "Everything at once. You won't survive by trading blows.",
+    "foes": [
+      { "kind": "warden", "depth": 0, "lane": 1 },
+      { "kind": "slime",  "depth": 0, "lane": 0 },
+      { "kind": "slime",  "depth": 0, "lane": 2 },
+      { "kind": "archer", "depth": 2, "lane": 1 },
+      { "kind": "wisp",   "depth": 1, "lane": 2 }
+    ]
+  }
+}

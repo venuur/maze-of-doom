@@ -1,0 +1,6 @@
+{
+  "vanguard":   { "name": "Vanguard",   "desc": "Front-line tank. Redirects and absorbs enemy attacks.",            "hp": 16, "prefers": [0],    "glyph": "V", "color": "#4a7bd8", "skills": ["strike", "shield_bash", "taunt", "brace", "rampart"] },
+  "lancer":     { "name": "Lancer",     "desc": "Mid-row skirmisher. Pulls, pushes and shoves enemies around.",      "hp": 11, "prefers": [1],    "glyph": "L", "color": "#3fae8c", "skills": ["jab", "hook", "lunge", "sweep", "shunt"] },
+  "pyromancer": { "name": "Pyromancer", "desc": "Back-row damage. Lines, columns, crosses and burning ground.",      "hp": 9,  "prefers": [2],    "glyph": "P", "color": "#e0633a", "skills": ["firebolt", "flame_pillar", "scorch", "detonate"] },
+  "mystic":     { "name": "Mystic",     "desc": "Control and support. Cancels intents, heals, guards and swaps.",   "hp": 10, "prefers": [1, 2], "glyph": "M", "color": "#a06ad8", "skills": ["mend", "silence", "daze", "ward", "transpose"] }
+}

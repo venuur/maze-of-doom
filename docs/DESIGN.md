@@ -143,3 +143,6 @@ The Maze is a character and the central antagonist / rival.
 | Art style | Placeholder shapes drawn in code for the slice. All drawing lives in `src/render/`, so pixel art can replace it later. |
 | Party makeup | **Both** recruited people and befriended creatures. Both use the same job and ability-slot system. |
 | Defeat | **The Maze relocates the party** to another known zone, with commentary. XP, jobs, and the world are kept. |
+| Starting jobs (M2) | Claude's proposal, accepted: Vanguard, Lancer, Pyromancer, Mystic. See [battle.md](battle.md). Numbers are tuned by headless simulation, not final. |
+| Battle turn rule (M2) | Each unit may step once **before** acting; acting ends its turn. Prevents trivial "attack, then dodge". |
+| Grid orientation (M2) | Depth 0 = front. Line shots hit the first unit in their path, **friend or foe** (enables "make them hit each other"). |

@@ -22,6 +22,13 @@ export interface EnemyKind {
   behavior: "wander" | "still";
   /** Max tiles (Chebyshev) an enemy will roam from its spawn. */
   radius: number;
+  battle?: {
+    hp: number;
+    prefers: number[];
+    mobile: boolean;
+    skills: string[];
+    resist?: Record<string, number>;
+  };
 }
 
 export interface Actor {

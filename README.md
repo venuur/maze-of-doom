@@ -8,18 +8,24 @@ See **[docs/DESIGN.md](docs/DESIGN.md)** for the full design and the decisions l
 
 ```sh
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # overworld: http://localhost:5173  ·  battle sandbox: /battle.html
+npm run sim        # headless battle balance simulation
 npm test           # unit tests (Vitest)
 npm run build      # typecheck + production build
 ```
 
 Controls: arrow keys or WASD. On touch devices, an on-screen d-pad appears.
 
+**Battle sandbox** (`battle.html`): pick an encounter, tap a party member, step to a blue tile (optional), pick a skill, tap a yellow target. Red tiles are telegraphed enemy attacks with resolve order and predicted damage. **Auto** lets the planner AI finish the round; **Undo** rewinds within a round. Rules and jobs: [docs/battle.md](docs/battle.md).
+
 ## Layout
 
 | Path | What |
 |---|---|
 | `src/core/` | Pure, deterministic game logic: RNG, zones, world rules, camera. No DOM. |
+| `src/core/battle/` | Battle engine, grid shapes, planner AI. No DOM. |
+| `src/battle/` | Battle sandbox UI (DOM). |
+| `scripts/` | Headless tools (balance simulation). |
 | `src/data/` | Content as JSON: tiles, enemy kinds, zones. |
 | `src/render/` | Canvas 2D drawing and visual-only tweens. Placeholder shapes. |
 | `src/main.ts` | Browser entry: input, timing, wiring. |
@@ -28,7 +34,7 @@ Controls: arrow keys or WASD. On touch devices, an on-screen d-pad appears.
 ## Progress
 
 - [x] **M1** Top-down movement in one handcrafted zone (tile map, collision, camera, visible enemies)
-- [ ] **M2** Battle system
+- [x] **M2** Battle system (3x3 grids, telegraphed intents, positions, shapes, 4 jobs, push/pull, fire/lava hazards)
 - [ ] **M3** Map-to-battle transitions + instant win
 - [ ] **M4** Job system basics
 - [ ] **M5** One field ability (Float)
