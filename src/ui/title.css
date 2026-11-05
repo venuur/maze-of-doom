@@ -1,0 +1,14 @@
+.title { max-width: 900px; margin: 6vh auto 0; display: grid; gap: 14px; color: #d9d3e6; font: 14px/1.4 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+.title h1 { font-size: 28px; margin: 0; letter-spacing: 0.08em; color: #e8e0c8; }
+.title h2 { font-size: 14px; margin: 0 0 4px; opacity: 0.8; }
+.title .hint { opacity: 0.55; font-size: 12px; }
+.title a { color: #4a9ad8; }
+.title .note { color: #e8a04a; margin: 0; }
+.title .slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.title .slot { background: #15121c; border: 1px solid #2a2534; border-radius: 6px; padding: 12px; display: grid; gap: 6px; align-content: start; }
+.title .slot.empty { border-style: dashed; }
+.title .party { font-size: 12px; }
+.title .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.title button { background: #2a2534; color: #d9d3e6; border: 1px solid #4a4458; border-radius: 4px; padding: 6px 12px; font: inherit; cursor: pointer; }
+.title button.primary { background: #3a5a8a; border-color: #4a7bd8; }
+.title button.danger { background: #7a2a36; border-color: #e84a5f; }

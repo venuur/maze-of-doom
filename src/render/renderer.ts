@@ -37,9 +37,25 @@ export interface Frame {
   timeMs: number;
 }
 
+/** The zone's most common open tile color, cached per zone: background for tiles drawn on "floor". */
+const floorColors = new WeakMap<World["zone"], string>();
+function floorColorOf(zone: World["zone"]): string {
+  let c = floorColors.get(zone);
+  if (c) return c;
+  const counts = new Map<string, number>();
+  for (const ch of zone.tiles) {
+    const t = zone.tileDefs[ch];
+    if (t && !t.solid && !t.rest && !t.exit) counts.set(t.color, (counts.get(t.color) ?? 0) + 1);
+  }
+  c = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "#8a8074";
+  floorColors.set(zone, c);
+  return c;
+}
+
 export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
   const { world } = f;
   const { zone } = world;
+  const floor = floorColorOf(zone);
   const vw = ctx.canvas.width;
   const vh = ctx.canvas.height;
   const cam = cameraOrigin(
@@ -66,7 +82,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
     for (let x = x0; x <= x1; x++) {
       const t = tileAt(zone, x, y);
       if (!t) continue;
-      drawTile(ctx, t.id, t.color, x * TILE - ox, y * TILE - oy, x, y, f);
+      drawTile(ctx, t.draw ?? t.id, t.rest ? floor : t.color, x * TILE - ox, y * TILE - oy, x, y, f);
     }
   }
 
@@ -128,9 +144,9 @@ function drawTile(
 
   switch (id) {
     case "wall":
-      ctx.fillStyle = "#2a2534";
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
       ctx.fillRect(sx, sy + TILE - 6, TILE, 6);
-      ctx.strokeStyle = "#4a4458";
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
       ctx.strokeRect(sx + 0.5, sy + 0.5, TILE - 1, TILE - 7);
       break;
     case "floor":
@@ -182,6 +198,47 @@ function drawTile(
     case "statue":
       drawStatue(ctx, sx, sy, tx, ty, f);
       break;
+    case "vines":
+      ctx.strokeStyle = "#5f9a3a";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        const vx = sx + 6 + i * 10;
+        ctx.moveTo(vx, sy);
+        ctx.quadraticCurveTo(vx + 6 * Math.sin(tx + i), sy + h, vx, sy + TILE);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1;
+      break;
+    case "spire": {
+      ctx.fillStyle = "#5e4c44";
+      ctx.fillRect(sx, sy, TILE, TILE);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(sx + h, sy - 10);
+      ctx.lineTo(sx + TILE - 3, sy + TILE);
+      ctx.lineTo(sx + 3, sy + TILE);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = `rgba(240,122,44,${0.3 + 0.2 * Math.sin(f.timeMs / 600 + tx)})`;
+      ctx.fillRect(sx + h - 2, sy + 6, 4, TILE - 10);
+      break;
+    }
+    case "bell": {
+      ctx.fillStyle = "#5f6470";
+      ctx.fillRect(sx, sy, TILE, TILE);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(sx + 8, sy + 6);
+      ctx.lineTo(sx + TILE - 8, sy + 6);
+      ctx.lineTo(sx + TILE - 2, sy + TILE - 4);
+      ctx.lineTo(sx + 2, sy + TILE - 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "#14111c";
+      ctx.stroke();
+      break;
+    }
     case "shrine": {
       // A small rest shrine with a pulsing light.
       ctx.fillStyle = "#5c5468";
@@ -316,6 +373,15 @@ function drawFeature(ctx: CanvasRenderingContext2D, feat: Feature, sx: number, s
     ctx.moveTo(sx + h + 11, sy + 4);
     ctx.lineTo(sx + h + 11, sy + TILE - 4);
     ctx.stroke();
+  } else if (feat.look === "stone") {
+    // An inscribed standing stone.
+    ctx.fillStyle = "#8a8496";
+    ctx.beginPath();
+    ctx.roundRect(sx + 9, sy + 6, 14, 22, [6, 6, 1, 1]);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#4a4458";
+    for (let i = 0; i < 3; i++) ctx.fillRect(sx + 12, sy + 12 + i * 5, 8, 2);
   } else if (feat.look === "relic") {
     // A glowing eye-shaped relic.
     const glow = 0.5 + Math.sin(now / 200) * 0.3;

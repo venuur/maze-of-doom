@@ -106,5 +106,16 @@
       "text": "You float over the lava and lift the relic: a glass eye, warm, its pupil the same shape as the statues' gaze. It blinks. Every member gains 12 job XP. Somewhere, the Maze notices that you came this far.",
       "after": ""
     }
+  ],
+  "exits": [
+    {
+      "id": "south",
+      "x": 14,
+      "y": 23,
+      "arrive": {
+        "x": 14,
+        "y": 22
+      }
+    }
   ]
 }

@@ -22,7 +22,7 @@
     "name": "Mystic", "desc": "Control and support. Cancels intents, heals, guards and swaps.",
     "hp": 10, "prefers": [1, 2], "glyph": "M", "color": "#a06ad8", "unlock": "starter",
     "abilities": [
-      { "id": "mend", "level": 1 }, { "id": "ward", "level": 1 },
+      { "id": "mend", "level": 1 }, { "id": "ward", "level": 1 }, { "id": "spark", "level": 1 },
       { "id": "silence", "level": 2 }, { "id": "blink", "level": 2 },
       { "id": "daze", "level": 3 }, { "id": "float", "level": 3 },
       { "id": "transpose", "level": 4 }, { "id": "second_wind", "level": 4 }, { "id": "devotion", "level": 4 }

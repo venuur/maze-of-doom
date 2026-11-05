@@ -1,13 +1,16 @@
 /**
- * Browser entry: wires input and timing to the pure world/session logic,
- * renders the overworld, and hands off to the battle view on encounters.
+ * Browser entry: the save-slot title screen, then the overworld loop. Wires
+ * input and timing to the pure world/session logic, renders the current
+ * zone, hands off to the battle view on encounters, and autosaves.
  */
 import { movePlayer, stepEnemies, type Dir, type WorldEvent } from "./core/world";
 import { ENEMY_KINDS } from "./data";
-import { JOBS, ENCOUNTERS, JOB_CONTENT } from "./data/battle";
+import { JOBS, JOB_CONTENT } from "./data/battle";
 import { BattleView, type BattleExit } from "./battle/view";
 import { levelIn } from "./core/jobs";
-import { createSession, finishBattle, interact, restoreParty, startEncounter } from "./game/session";
+import { createSession, exitAt, finishBattle, interact, restoreParty, startEncounter, travel, type Session } from "./game/session";
+import { saveToSlot } from "./game/save";
+import { TitleScreen } from "./ui/title";
 import { PartyMenu } from "./ui/party-menu";
 import { drawFrame, TILE, type Effect, type Pos } from "./render/renderer";
 import { Tween } from "./render/tween";
@@ -20,7 +23,8 @@ const ENEMY_TICK_MS = 700;
 const TRANSITION_MS = 450;
 /** After a battle, ignore touches for a moment so you aren't re-engaged instantly. */
 const GRACE_MS = 2500;
-const SEED = 0x6d617a65; // "maze"
+/** Autosave at most this often while walking around (events save immediately). */
+const AUTOSAVE_MS = 10000;
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 canvas.width = VIEW_TILES_W * TILE;
@@ -32,6 +36,7 @@ const messageEl = document.getElementById("message")!;
 const partyEl = document.getElementById("party")!;
 const battleLayer = document.getElementById("battle-layer")!;
 const menuLayer = document.getElementById("menu-layer")!;
+const titleLayer = document.getElementById("title-layer")!;
 
 // --- Messages ---
 let messageTimer = 0;
@@ -42,14 +47,36 @@ function say(text: string, ms = 4000) {
   messageTimer = window.setTimeout(() => messageEl.classList.remove("show"), ms);
 }
 
-const session = createSession("antechamber", SEED);
-const world = session.world;
-zoneLabel.textContent = world.zone.name;
-say(world.zone.recipe.story);
-
-const playerTween = new Tween(world.player.x, world.player.y, PLAYER_STEP_MS);
-const enemyTweens = new Map(world.enemies.map((e) => [e.id, new Tween(e.x, e.y, ENEMY_STEP_MS)]));
+// --- Game state (set when a slot is chosen) ---
+let session: Session = createSession("antechamber", 1); // placeholder until a slot is picked
+let slot = 1;
+let playerTween = new Tween(0, 0, PLAYER_STEP_MS);
+let enemyTweens = new Map<string, Tween>();
 const effects: Effect[] = [];
+let dirty = false;
+let lastSave = 0;
+
+/** Rebuild per-zone presentation state after entering a zone (travel, load, relocation). */
+function resetZoneView() {
+  const w = session.world;
+  zoneLabel.textContent = `${w.zone.name}${w.zone.depth ? ` · depth ${w.zone.depth}` : ""}`;
+  playerTween = new Tween(w.player.x, w.player.y, PLAYER_STEP_MS);
+  enemyTweens = new Map(w.enemies.map((e) => [e.id, new Tween(e.x, e.y, ENEMY_STEP_MS)]));
+  effects.length = 0;
+  lastTouched = null;
+  lastGateHint = null;
+}
+
+function autosave() {
+  try {
+    saveToSlot(localStorage, slot, session);
+    dirty = false;
+    lastSave = performance.now();
+  } catch (err) {
+    console.error("Autosave failed", err);
+    say("Couldn't save (browser storage unavailable). Progress in this tab is kept until you close it.", 6000);
+  }
+}
 
 function renderParty() {
   partyEl.innerHTML = session.party
@@ -98,8 +125,8 @@ document.querySelectorAll<HTMLButtonElement>("[data-dir]").forEach((btn) => {
 });
 
 // --- Encounters ---
-type Mode = "explore" | "transition" | "battle" | "menu";
-let mode: Mode = "explore";
+type Mode = "title" | "explore" | "transition" | "battle" | "menu";
+let mode: Mode = "title";
 let graceUntil = 0;
 let battleView: BattleView | null = null;
 let menu: PartyMenu | null = null;
@@ -118,6 +145,7 @@ function closeMenu() {
   menuLayer.hidden = true;
   mode = "explore";
   lastEnemyTick = performance.now();
+  autosave();
 }
 
 partyEl.addEventListener("click", (e) => {
@@ -126,12 +154,12 @@ partyEl.addEventListener("click", (e) => {
 
 /** Features whose job hasn't been discovered yet. */
 function freshFeatures(): Set<string> {
-  return new Set(world.zone.features.filter((f) => f.kind === "job" && f.job && !session.discovered.has(f.job)).map((f) => f.id));
+  return new Set(session.world.zone.features.filter((f) => f.kind === "job" && f.job && !session.discovered.has(f.job)).map((f) => f.id));
 }
 
 function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: number) {
   if (now < graceUntil || mode !== "explore") return;
-  const enemy = world.enemies.find((e) => e.id === enemyId);
+  const enemy = session.world.enemies.find((e) => e.id === enemyId);
   if (!enemy) return;
   const result = startEncounter(session, enemyId);
 
@@ -141,6 +169,7 @@ function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: num
     enemyTweens.delete(enemyId);
     say(`(Instant win) ${result.message}`, result.notes.length ? 7000 : 4000);
     renderParty();
+    autosave();
     return;
   }
 
@@ -153,7 +182,7 @@ function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: num
     mode = "battle";
     battleLayer.hidden = false;
     battleLayer.scrollTop = 0;
-    const enc = ENCOUNTERS[result.encounterId]!;
+    const enc = result.encounter;
     battleView = new BattleView(battleLayer, result.battle, {
       canRetreat: true,
       subtitle: `${enc.name}: ${enc.desc}`,
@@ -167,6 +196,7 @@ function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: num
 }
 
 function endEncounter(enemyId: string, state: Parameters<typeof finishBattle>[2], how: BattleExit) {
+  const zoneBefore = session.world.zone.id;
   const msg = finishBattle(session, enemyId, state, how);
   battleView?.destroy();
   battleView = null;
@@ -176,10 +206,12 @@ function endEncounter(enemyId: string, state: Parameters<typeof finishBattle>[2]
   graceUntil = now + GRACE_MS;
   lastEnemyTick = now;
   if (how === "won") enemyTweens.delete(enemyId);
-  // Defeat relocates the player: snap the tween to the new spot.
-  playerTween.moveTo(world.player.x, world.player.y, world.player.x, world.player.y, now - PLAYER_STEP_MS);
+  // Defeat relocates the party, possibly to another zone.
+  if (session.world.zone.id !== zoneBefore) resetZoneView();
+  else playerTween.moveTo(session.world.player.x, session.world.player.y, session.world.player.x, session.world.player.y, now - PLAYER_STEP_MS);
   renderParty();
   say(msg, msg.length > 60 ? 8000 : 5000);
+  autosave();
 }
 
 let lastTouched: string | null = null;
@@ -187,7 +219,8 @@ let lastTouched: string | null = null;
 let lastGateHint: string | null = null;
 const GATE_HINTS: Record<string, string> = {
   float: "The lava is too hot to cross on foot. Someone who could Float over it might. (A Mystic learns Float at Lv3; equip it in the Movement slot.)",
-  swim: "Deep water. You'd need to swim. (Not in this slice.)",
+  swim: "Deep water. You'd need to swim. (A future ability.)",
+  cut: "Thick, living vines. You'd need a way to cut through. (A future ability.)",
 };
 
 function handle(events: WorldEvent[], now: number) {
@@ -195,12 +228,13 @@ function handle(events: WorldEvent[], now: number) {
     switch (ev.type) {
       case "moved":
         if (ev.who === "player") {
-          playerTween.moveTo(world.player.x, world.player.y, ev.fromX, ev.fromY, now);
+          playerTween.moveTo(session.world.player.x, session.world.player.y, ev.fromX, ev.fromY, now);
           lastTouched = null;
           lastGateHint = null;
+          dirty = true;
         }
         else {
-          const e = world.enemies.find((en) => en.id === ev.who);
+          const e = session.world.enemies.find((en) => en.id === ev.who);
           if (e) enemyTweens.get(e.id)?.moveTo(e.x, e.y, ev.fromX, ev.fromY, now);
         }
         break;
@@ -214,10 +248,11 @@ function handle(events: WorldEvent[], now: number) {
         const r = interact(session, ev.featureId);
         if (r.message) say(r.message, r.discovered || r.collected ? 10000 : 6000);
         if (r.collected) {
-          const f = world.zone.features.find((x) => x.id === r.collected)!;
+          const f = session.world.zone.features.find((x) => x.id === r.collected)!;
           effects.push({ kind: "poof", px: f.x * TILE, py: f.y * TILE, start: now, color: "#f2d64b" });
           renderParty();
         }
+        if (r.collected || r.discovered) autosave();
         break;
       }
       case "blocked": {
@@ -231,11 +266,20 @@ function handle(events: WorldEvent[], now: number) {
           restoreParty(session);
           renderParty();
           say("The shrine's pale light washes over you. The party is restored.");
+          autosave();
         }
         break;
-      case "exit":
-        say("The exit hums. Beyond it, the Maze is still deciding what to become. (Zone generation: Milestone 6.)");
-        break;
+      case "exit": {
+        const exit = exitAt(session, ev.x, ev.y);
+        if (!exit) break;
+        held.length = 0;
+        const r = travel(session, exit.id);
+        resetZoneView();
+        graceUntil = now + GRACE_MS;
+        say(r.isNew ? `${r.message} (The Maze builds this place as you enter. It will stay as you leave it.)` : r.message, r.isNew ? 9000 : 3000);
+        autosave();
+        return; // the rest of this tick's events belong to the old zone
+      }
     }
   }
 }
@@ -243,31 +287,67 @@ function handle(events: WorldEvent[], now: number) {
 // --- Loop ---
 let lastEnemyTick = performance.now();
 function frame(now: number) {
+  if (mode === "explore" && dirty && now - lastSave > AUTOSAVE_MS) autosave();
   if (mode === "explore") {
     const dir = held[held.length - 1];
-    if (dir && !playerTween.busy(now)) handle(movePlayer(world, dir), now);
+    if (dir && !playerTween.busy(now)) handle(movePlayer(session.world, dir), now);
     if (now - lastEnemyTick >= ENEMY_TICK_MS) {
       lastEnemyTick = now;
-      handle(stepEnemies(world), now);
+      handle(stepEnemies(session.world), now);
     }
   }
-  if (mode !== "battle" && mode !== "menu") {
+  if (mode !== "battle" && mode !== "menu" && mode !== "title") {
     const enemies = new Map<string, Pos>();
-    for (const e of world.enemies) {
+    for (const e of session.world.enemies) {
       const t = enemyTweens.get(e.id);
       if (t) enemies.set(e.id, t.pos(now));
     }
     while (effects.length && now - effects[0]!.start > 600) effects.shift();
     drawFrame(ctx, {
-      world, player: playerTween.pos(now), enemies, effects, timeMs: now,
+      world: session.world, player: playerTween.pos(now), enemies, effects, timeMs: now,
       fresh: freshFeatures(),
       featureColor: (f) => (f.job ? JOBS[f.job]?.color : undefined) ?? "#f2d64b",
-      floating: world.abilities.has("float") && !!world.zone.tileDefs[world.zone.tiles[world.player.y * world.zone.width + world.player.x]!]?.solid,
+      floating: session.world.abilities.has("float") && !!session.world.zone.tileDefs[session.world.zone.tiles[session.world.player.y * session.world.zone.width + session.world.player.x]!]?.solid,
     });
   }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
+// --- Title screen & save slots ---
+function startGame(s: Session, slotNo: number, isNew: boolean) {
+  session = s;
+  slot = slotNo;
+  titleLayer.hidden = true;
+  title?.destroy();
+  title = null;
+  resetZoneView();
+  renderParty();
+  mode = "explore";
+  lastEnemyTick = performance.now();
+  graceUntil = performance.now() + 800;
+  const z = session.world.zone;
+  say(isNew ? z.recipe.story : `Slot ${slotNo}: ${z.name}.`, isNew ? 6000 : 3000);
+  autosave();
+}
+
+let title: TitleScreen | null = null;
+function showTitle() {
+  if (mode !== "title") autosave();
+  mode = "title";
+  held.length = 0;
+  titleLayer.hidden = false;
+  title?.destroy();
+  title = new TitleScreen(titleLayer, localStorage, startGame);
+}
+document.getElementById("saves-btn")!.addEventListener("click", showTitle);
+window.addEventListener("pagehide", () => { if (mode !== "title") autosave(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden && mode !== "title") autosave(); });
+showTitle();
+
 // Debug handle for poking at state from the console.
-(window as unknown as { maze: unknown }).maze = { world, session, get battle() { return battleView?.state; } };
+(window as unknown as { maze: unknown }).maze = {
+  get world() { return session.world; },
+  get session() { return session; },
+  get battle() { return battleView?.state; },
+};

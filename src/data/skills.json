@@ -17,6 +17,7 @@
   "detonate":     { "name": "Detonate",     "desc": "Explosion in a cross. Only from the back row.",                               "target": "foe",  "shape": "cross",  "from": [2], "power": 2, "element": "fire", "cooldown": 3 },
 
   "mend":         { "name": "Mend",         "desc": "Restore 4 HP to an ally.",                                                     "target": "ally", "shape": "single", "heal": 4 },
+  "spark":        { "name": "Spark",        "desc": "A small bolt of raw force at any enemy. Weak, but nothing is immune to it.",  "target": "foe",  "shape": "single", "power": 1, "element": "arcane" },
   "silence":      { "name": "Silence",      "desc": "Cancel an enemy's declared action.",                                          "target": "foe",  "shape": "single", "cancel": true, "cooldown": 2 },
   "daze":         { "name": "Daze",         "desc": "Stun: cancels this round's action and the next.",                             "target": "foe",  "shape": "single", "power": 1, "stun": 1, "cooldown": 3 },
   "ward":         { "name": "Ward",         "desc": "An ally takes half damage this round.",                                        "target": "ally", "shape": "single", "guard": true },

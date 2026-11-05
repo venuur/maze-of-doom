@@ -5,7 +5,7 @@ import { createWorld, movePlayer } from "../src/core/world";
 import { loadZone } from "../src/core/zone";
 import { ENEMY_KINDS, TILES, ZONES, getZone } from "../src/data";
 import { BATTLE_CONTENT, ENCOUNTERS, buildEncounter, encounterXp } from "../src/data/battle";
-import { changeLoadout, createSession, encounterIdFor, finishBattle, interact, startEncounter } from "../src/game/session";
+import { changeLoadout, createSession, defeatedIn, encounterIdFor, finishBattle, interact, startEncounter } from "../src/game/session";
 import { JobError, equip, gainXp } from "../src/core/jobs";
 import { JOB_CONTENT } from "../src/data/battle";
 import { isPassable } from "../src/core/zone";
@@ -44,7 +44,7 @@ describe("encounters on the map", () => {
     const r = startEncounter(s, "slime-2");
     expect(r.kind).toBe("instant");
     expect(s.world.enemies.some((e) => e.id === "slime-2")).toBe(false);
-    expect(s.defeated).toEqual(["slime-2"]);
+    expect(defeatedIn(s, "antechamber")).toEqual(["slime-2"]);
     expect(s.party.every((m) => m.hp === m.maxHp)).toBe(true);
   });
 

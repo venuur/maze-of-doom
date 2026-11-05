@@ -1,4 +1,5 @@
 /** Zone data model and loading/validation. Pure, no DOM. */
+import type { Hazard } from "./battle/types";
 
 export interface TileDef {
   id: string;
@@ -9,6 +10,25 @@ export interface TileDef {
   exit?: boolean;
   /** Stepping here restores the party. */
   rest?: boolean;
+  /** Renderer style to reuse (defaults to id), e.g. "wall" for a themed wall. */
+  draw?: string;
+}
+
+/** A battle: foes in formation plus optional tile hazards. */
+export interface EncounterDef {
+  name: string;
+  desc: string;
+  foes: { kind: string; depth: number; lane: number }[];
+  hazards?: Hazard[];
+}
+
+/** A way out of a zone. Links between exits live in the session's zone graph. */
+export interface ZoneExit {
+  id: string;
+  x: number;
+  y: number;
+  /** Where you stand when arriving through this exit. */
+  arrive: { x: number; y: number };
 }
 
 export type TileTable = Record<string, TileDef>;
@@ -36,7 +56,7 @@ export interface EnemySpawn {
  */
 export interface Feature {
   id: string;
-  kind: "job" | "relic";
+  kind: "job" | "relic" | "lore";
   /** kind "job": the job taught by this feature. */
   job?: string;
   /** kind "relic": job XP granted to every member when collected. */
@@ -48,7 +68,7 @@ export interface Feature {
   text: string;
   /** Shown on later touches. */
   after?: string;
-  look: "hermit" | "weapon" | "relic";
+  look: "hermit" | "weapon" | "relic" | "stone";
 }
 
 export interface ZoneData {
@@ -59,6 +79,12 @@ export interface ZoneData {
   map: string[];
   enemies: EnemySpawn[];
   features?: Feature[];
+  exits?: ZoneExit[];
+  /** Encounters defined by this zone (generated zones); spawns may reference them. */
+  encounters?: Record<string, EncounterDef>;
+  /** Theme id (generated zones) and graph distance from the first zone. */
+  theme?: string;
+  depth?: number;
 }
 
 export interface Zone {
@@ -73,6 +99,10 @@ export interface Zone {
   tileDefs: TileTable;
   spawns: EnemySpawn[];
   features: Feature[];
+  exits: ZoneExit[];
+  encounters: Record<string, EncounterDef>;
+  theme?: string;
+  depth: number;
 }
 
 export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
@@ -102,6 +132,10 @@ export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
     tileDefs,
     spawns: data.enemies,
     features: data.features ?? [],
+    exits: data.exits ?? [],
+    encounters: data.encounters ?? {},
+    theme: data.theme,
+    depth: data.depth ?? 0,
   };
 
   const check = (x: number, y: number, what: string) => {
@@ -111,6 +145,10 @@ export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
   check(data.start.x, data.start.y, "start");
   for (const e of data.enemies) check(e.x, e.y, `enemy ${e.id}`);
   for (const f of zone.features) check(f.x, f.y, `feature ${f.id}`);
+  for (const x of zone.exits) {
+    if (!tileAt(zone, x.x, x.y)?.exit) throw new Error(`Zone ${data.id}: exit ${x.id} at (${x.x},${x.y}) is not an exit tile`);
+    check(x.arrive.x, x.arrive.y, `arrival for exit ${x.id}`);
+  }
 
   return zone;
 }

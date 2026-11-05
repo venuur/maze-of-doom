@@ -1,0 +1,74 @@
+{
+  "cinder": {
+    "name": "Cinder Fields",
+    "names": ["The Cinder Flats", "The Ashen Steps", "The Kiln Halls", "The Smoldering Reach", "The Glass Furnace"],
+    "floor": "a", "wall": "b", "accent": "a", "pool": "~", "gate": "~",
+    "landmark": {
+      "tile": "o", "size": 2,
+      "names": ["The Obsidian Spire", "The Black Chimney", "The Cooled Tower"],
+      "texts": ["A spire of black glass rises from the ash, humming when you stand near it.", "A chimney with no house beneath it breathes slow heat into the room."]
+    },
+    "twists": [
+      { "text": "The crust is thin here. Lava has broken through everywhere.", "pools": 3 },
+      { "text": "Heat shimmer. Every fight here starts on burning ground.", "battleHazard": "fire", "battleHazards": 2 },
+      { "text": "Wisps nest in the vents.", "foeBias": "wisp", "enemies": 1 }
+    ],
+    "stories": [
+      "Scorched into a wall: 'We tried to burn our way out. It made more fire.'",
+      "A charred map, every route crossed out but one. The last one is crossed out too, in a different hand.",
+      "A note: 'The Maze isn't cruel. It's curious. That's worse.'"
+    ],
+    "secret": "A relic glows in a chamber sealed by lava. Someone who can Float could reach it.",
+    "relicNames": ["The Ember Lens", "A Cooled Heart", "The Kiln Key"],
+    "foes": ["wisp", "slime", "warden"],
+    "relicText": "Heat rises off the relic as you lift it, then fades, as if it had been waiting for you."
+  },
+  "crypt": {
+    "name": "Drowned Crypt",
+    "names": ["The Sunken Ossuary", "The Tidal Vault", "The Weeping Halls", "The Low Crypt", "The Brine Chapel"],
+    "floor": "f", "wall": "#", "accent": "f", "pool": "w", "gate": "w",
+    "landmark": {
+      "tile": "B", "size": 2,
+      "names": ["The Drowned Bell", "The Silent Carillon", "The Tide Bell"],
+      "texts": ["A great bronze bell lies on its side, half full of black water. It rings when nobody touches it.", "A bell as tall as a person, green with age. Its clapper is missing."]
+    },
+    "twists": [
+      { "text": "The tide is coming in. The halls are half flooded.", "pools": 3 },
+      { "text": "The dead keep watch. There are archers in every fight.", "foeBias": "archer" },
+      { "text": "Restless. Twice as many things walk here.", "enemies": 3 }
+    ],
+    "stories": [
+      "A name carved over and over into a coffin lid, each one shallower than the last.",
+      "Graffiti: 'It floods the old rooms so you'll look for new ones.'",
+      "A ledger of the dead, kept by someone who added their own name at the bottom."
+    ],
+    "secret": "A relic rests in a flooded tomb. You'd need to swim to reach it. (A future ability.)",
+    "relicNames": ["The Tide Coin", "A Drowned Crown", "The Bell Tongue"],
+    "foes": ["archer", "slime", "warden"],
+    "relicText": "The relic is dry, though it sat underwater. It is cold all the way through."
+  },
+  "garden": {
+    "name": "Strangler Garden",
+    "names": ["The Strangler Garden", "The Green Choke", "The Rootways", "The Overgrown Court", "The Thorn Arcade"],
+    "floor": ",", "wall": "T", "accent": ",", "pool": "V", "gate": "V",
+    "landmark": {
+      "tile": "G", "size": 2,
+      "names": ["The Great Tree", "The Hanging Elm", "The Root Throne"],
+      "texts": ["A tree too big for any room. Its roots go down through the floor into somewhere else.", "An enormous elm with doors carved into its trunk. None of them open."]
+    },
+    "twists": [
+      { "text": "The garden grows while you watch. Vines choke the side halls.", "pools": 3 },
+      { "text": "Spore beds. Battles here are fought on spiked ground.", "battleHazard": "spikes", "battleHazards": 2 },
+      { "text": "The Wardens took root here.", "foeBias": "warden" }
+    ],
+    "stories": [
+      "A gardener's journal: 'I planted a door. It grew a wall.'",
+      "Initials carved into bark, healed over, carved again, healed over again.",
+      "A sign, nearly swallowed by moss: 'Do not feed the hedges.'"
+    ],
+    "secret": "A relic hangs in a grove walled off by thick vines. You'd need a way to cut through. (A future ability.)",
+    "relicNames": ["The Seed of Doors", "A Green Lantern", "The Root Knot"],
+    "foes": ["slime", "archer", "warden", "wisp"],
+    "relicText": "The relic comes free with a sound like a sigh. The vines around it go slack."
+  }
+}

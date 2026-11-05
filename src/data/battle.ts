@@ -7,7 +7,8 @@ import hazardsJson from "./hazards.json";
 import encountersJson from "./encounters.json";
 import { ENEMY_KINDS } from ".";
 import type { BattleContent } from "../core/battle/engine";
-import type { BattleSetup, Hazard, SkillDef, UnitSpec } from "../core/battle/types";
+import type { BattleSetup, SkillDef, UnitSpec } from "../core/battle/types";
+import type { EncounterDef } from "../core/zone";
 import {
   PASSIVE_SLOTS,
   changeJob,
@@ -24,12 +25,7 @@ import {
   type PassiveDef,
 } from "../core/jobs";
 
-export interface EncounterDef {
-  name: string;
-  desc: string;
-  foes: { kind: string; depth: number; lane: number }[];
-  hazards?: Hazard[];
-}
+export type { EncounterDef };
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries(
   Object.entries(skillsJson as Record<string, Omit<SkillDef, "id">>).map(([id, s]) => [id, { id, ...s }]),
@@ -95,15 +91,20 @@ export function foeUnit(kind: string, depth: number, lane: number, id: string): 
   };
 }
 
-/** XP an encounter awards each surviving party member. */
-export function encounterXp(id: string): number {
-  return ENCOUNTERS[id]!.foes.reduce((sum, f) => sum + (ENEMY_KINDS[f.kind]!.battle?.xp ?? 0), 0);
+const resolveEncounter = (e: string | EncounterDef): EncounterDef => {
+  const def = typeof e === "string" ? ENCOUNTERS[e] : e;
+  if (!def) throw new Error(`Unknown encounter '${e as string}'`);
+  return def;
+};
+
+/** XP an encounter awards each surviving party member. Takes an id or a (zone-defined) encounter. */
+export function encounterXp(enc: string | EncounterDef): number {
+  return resolveEncounter(enc).foes.reduce((sum, f) => sum + (ENEMY_KINDS[f.kind]!.battle?.xp ?? 0), 0);
 }
 
 /** Build an encounter's battle setup. `party` defaults to the starting party. */
-export function buildEncounter(id: string, party?: UnitSpec[]): BattleSetup {
-  const e = ENCOUNTERS[id];
-  if (!e) throw new Error(`Unknown encounter '${id}'`);
+export function buildEncounter(enc: string | EncounterDef, party?: UnitSpec[]): BattleSetup {
+  const e = resolveEncounter(enc);
   const counts: Record<string, number> = {};
   return {
     party: party ?? partySpecsOf(startingParty()),

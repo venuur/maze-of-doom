@@ -115,7 +115,7 @@ The Maze is a character and the central antagonist / rival.
 - ~~Art style~~ → decided, see §12
 - **Balancing** the job tree, skill list, and grid rules together.
 - ~~Death/defeat consequences~~ → decided, see §12
-- **Save system** details.
+- ~~Save system~~ → decided, see §12
 
 ## 10. Vertical Slice — Build Order
 
@@ -153,5 +153,8 @@ The Maze is a character and the central antagonist / rival.
 | Job progression (M4) | Abilities are learned by job level (no point spending). XP goes to the survivors' primary jobs. Learned passives auto-equip into empty slots. Jobs can be changed freely outside battle. |
 | Starting party (M4) | Three characters: Wren (person, Vanguard), Sable (person, Pyromancer), Burr (creature, Mystic). More come from zone recruits later. |
 | Float (M5) | A Mystic Movement passive (Lv3). It works on the map while **any** member has it equipped; in battle it ignores lava and spikes. It opens the relic island in the Antechamber. Unequipping over lava is refused. |
+| Save system (M6) | **Several slots** (3), autosaved to browser storage, with export/import as JSON files. A save holds generated zones (generate once, persist) and per-zone changes. See [zones.md](zones.md). |
+| Zone generation (M6) | Three themes (Cinder Fields, Drowned Crypt, Strangler Garden). Each twist is also a mechanical modifier. Secrets are sealed by the theme's gate tile: only Float exists so far, so crypt and garden secrets are visible but wait for future abilities. |
+| Universal attack (M6) | The Mystic gets **Spark** at Lv1 (1 arcane damage to any enemy), so a generated fight can never be an unwinnable stalemate (e.g. fire-immune back-row foes against a Lv1 party). |
 | Hosting | Static build (`npm run build` → `dist/`), deployable to Cloudflare Pages. Relative asset paths (`base: "./"`). |
 | Grid orientation (M2) | Depth 0 = front. Line shots hit the first unit in their path, **friend or foe** (enables "make them hit each other"). |

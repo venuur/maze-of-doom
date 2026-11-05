@@ -30,7 +30,7 @@ All content is data: `src/data/jobs.json` (jobs, unlock rules, abilities by leve
 |---|---|---|---|---|---|---|---|
 | **Vanguard** | starter | 16 | front | Strike, Brace | Taunt, *Counter* (R) | Shield Bash, *Fortitude* (S) | Rampart |
 | **Pyromancer** | starter | 9 | back | Firebolt, Scorch | Flame Pillar, *Kindling* (S) | Detonate, *Ember Walk* (M) | |
-| **Mystic** | starter | 10 | mid/back | Mend, Ward | Silence, *Blink* (M) | Daze, ***Float*** (M, field) | Transpose, *Second Wind* (R), *Devotion* (S) |
+| **Mystic** | starter | 10 | mid/back | Mend, Ward, Spark | Silence, *Blink* (M) | Daze, ***Float*** (M, field) | Transpose, *Second Wind* (R), *Devotion* (S) |
 | **Lancer** | the Old Lancer, south corridor | 11 | middle | Jab, Hook | Shunt, *Anchor* (S) | Lunge, *Repel* (R) | Sweep, *Stride* (M) |
 | **Ranger** | a bow by the lava pool, NE | 10 | back | Aimed Shot, Caltrops | Arrow Rain, *Deadeye* (S) | Pinning Shot, *Stride* (M) | |
 | **Spellblade** | hybrid: Lancer Lv2 + Pyromancer Lv2 | 13 | front/mid | Flame Lunge, Searing Hook | Blazing Sweep, *Burning Riposte* (R) | *Kindling* (S) | |
