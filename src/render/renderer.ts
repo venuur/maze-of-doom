@@ -32,6 +32,8 @@ export interface Frame {
   fresh?: ReadonlySet<string>;
   /** Accent color per feature (e.g. its job's color). */
   featureColor?: (f: Feature) => string;
+  /** The player is hovering over a gated tile (e.g. Float over lava). */
+  floating?: boolean;
   timeMs: number;
 }
 
@@ -69,6 +71,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
   }
 
   for (const feat of zone.features) {
+    if (world.removedFeatures.has(feat.id)) continue;
     const sx = feat.x * TILE - ox;
     const sy = feat.y * TILE - oy;
     if (sx < -TILE || sy < -TILE || sx > vw || sy > vh) continue;
@@ -82,7 +85,12 @@ export function drawFrame(ctx: CanvasRenderingContext2D, f: Frame): void {
     drawEnemy(ctx, kind.shape, kind.color, pos.px - ox, pos.py - oy, f.timeMs, e.id);
   }
 
-  drawPlayer(ctx, f.player.px - ox, f.player.py - oy, world.player.facing);
+  const lift = f.floating ? 5 + Math.sin(f.timeMs / 300) * 2 : 0;
+  if (lift) {
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ellipse(ctx, f.player.px - ox + TILE / 2, f.player.py - oy + TILE - 4, 8, 2);
+  }
+  drawPlayer(ctx, f.player.px - ox, f.player.py - oy - lift, world.player.facing);
 
   for (const fx of f.effects ?? []) drawPoof(ctx, fx, fx.px - ox, fx.py - oy, f.timeMs);
 }
@@ -308,6 +316,18 @@ function drawFeature(ctx: CanvasRenderingContext2D, feat: Feature, sx: number, s
     ctx.moveTo(sx + h + 11, sy + 4);
     ctx.lineTo(sx + h + 11, sy + TILE - 4);
     ctx.stroke();
+  } else if (feat.look === "relic") {
+    // A glowing eye-shaped relic.
+    const glow = 0.5 + Math.sin(now / 200) * 0.3;
+    ctx.fillStyle = `rgba(242,214,75,${glow})`;
+    circle(ctx, sx + h, sy + h, 11);
+    ctx.fillStyle = "#fff6d0";
+    ctx.beginPath();
+    ctx.ellipse(sx + h, sy + h, 9, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#14111c";
+    circle(ctx, sx + h, sy + h, 3);
   } else {
     // A weapon lying on the ground, glinting.
     ctx.strokeStyle = color;

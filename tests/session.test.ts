@@ -5,7 +5,10 @@ import { createWorld, movePlayer } from "../src/core/world";
 import { loadZone } from "../src/core/zone";
 import { ENEMY_KINDS, TILES, ZONES, getZone } from "../src/data";
 import { BATTLE_CONTENT, ENCOUNTERS, buildEncounter, encounterXp } from "../src/data/battle";
-import { createSession, encounterIdFor, finishBattle, interact, startEncounter } from "../src/game/session";
+import { changeLoadout, createSession, encounterIdFor, finishBattle, interact, startEncounter } from "../src/game/session";
+import { JobError, equip, gainXp } from "../src/core/jobs";
+import { JOB_CONTENT } from "../src/data/battle";
+import { isPassable } from "../src/core/zone";
 
 describe("instant win", () => {
   it("a lone slime is an instant win for the starting party", () => {
@@ -175,7 +178,7 @@ describe("job progression in a session", () => {
   });
 
   it("the Antechamber holds both discoverable jobs", () => {
-    const jobs = getZone("antechamber").features.map((f) => f.job).sort();
+    const jobs = getZone("antechamber").features.filter((f) => f.kind === "job").map((f) => f.job).sort();
     expect(jobs).toEqual(["lancer", "ranger"]);
   });
 });
@@ -208,5 +211,54 @@ describe("features on the map", () => {
         TILES,
       ),
     ).toThrow(/feature h/);
+  });
+});
+
+describe("Float (field ability)", () => {
+  /** A session whose Mystic has learned Float (Lv3), which auto-equips. */
+  function withFloat() {
+    const s = createSession("antechamber", 1);
+    const burr = s.party.find((m) => m.primary === "mystic")!;
+    const notes = gainXp(JOB_CONTENT, burr, JOB_CONTENT.levels[2]!, s.discovered);
+    expect(notes).toContainEqual({ kind: "learn", charId: "burr", job: "mystic", ability: "float", equipped: false });
+    // Lv2 auto-equipped Blink into Movement; switch it to Float through the session.
+    changeLoadout(s, () => equip(JOB_CONTENT, burr, "movement", "float"));
+    return { s, burr };
+  }
+
+  it("only works while equipped in a Movement slot", () => {
+    const { s, burr } = withFloat();
+    expect(s.world.abilities.has("float")).toBe(true);
+    changeLoadout(s, () => equip(JOB_CONTENT, burr, "movement", "blink"));
+    expect(s.world.abilities.has("float")).toBe(false);
+  });
+
+  it("lets the party cross lava to the relic, which is collected once", () => {
+    const { s } = withFloat();
+    const w = s.world;
+    expect(isPassable(w.zone, 23, 4, w.abilities)).toBe(true);
+    w.player.x = 22; w.player.y = 4;
+    for (let i = 0; i < 4; i++) expect(movePlayer(w, "right")[0]?.type).toBe("moved");
+    expect(movePlayer(w, "right")).toEqual([{ type: "interact", featureId: "lava-relic" }]);
+    const before = s.party.map((m) => m.jobXp[m.primary]!);
+    const r = interact(s, "lava-relic");
+    expect(r.collected).toBe("lava-relic");
+    expect(s.party.map((m) => m.jobXp[m.primary]!)).toEqual(before.map((x) => x + 12));
+    expect(interact(s, "lava-relic").collected).toBeUndefined();
+    expect(movePlayer(w, "right")[0]?.type).toBe("moved"); // the island is walkable now
+  });
+
+  it("without Float, lava blocks and says which ability it needs", () => {
+    const s = createSession("antechamber", 1);
+    s.world.player.x = 22; s.world.player.y = 4;
+    expect(movePlayer(s.world, "right")).toEqual([{ type: "blocked", gate: "float" }]);
+  });
+
+  it("can't take Float off while hovering over lava", () => {
+    const { s, burr } = withFloat();
+    s.world.player.x = 24; s.world.player.y = 4;
+    expect(() => changeLoadout(s, () => equip(JOB_CONTENT, burr, "movement", null))).toThrow(JobError);
+    expect(s.party.find((m) => m.id === "burr")!.movement).toBe("float");
+    expect(s.world.abilities.has("float")).toBe(true);
   });
 });

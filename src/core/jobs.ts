@@ -37,6 +37,8 @@ export interface PassiveDef {
   traits?: UnitTraits;
   /** Support: flat max HP bonus. */
   maxHp?: number;
+  /** Movement: overworld ability granted while equipped (e.g. "float" crosses lava). */
+  field?: string;
 }
 
 export interface JobContent {
@@ -154,6 +156,20 @@ export function traitsOf(content: JobContent, ch: Character): UnitTraits {
     if (id) Object.assign(t, content.passives[id]?.traits);
   }
   return t;
+}
+
+/**
+ * Field abilities the party has on the map: any member with a field passive
+ * equipped in its Movement slot. (Equipping it costs that member the slot in
+ * battle: builds trade combat power for exploration reach.)
+ */
+export function fieldAbilities(content: JobContent, party: Character[]): Set<string> {
+  const out = new Set<string>();
+  for (const ch of party) {
+    const f = ch.movement ? content.passives[ch.movement]?.field : undefined;
+    if (f) out.add(f);
+  }
+  return out;
 }
 
 /** Battle commands: the primary job's learned skills, then the secondary's. */

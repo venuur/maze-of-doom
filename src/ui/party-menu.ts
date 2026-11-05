@@ -22,7 +22,7 @@ import {
   type PassiveSlot,
 } from "../core/jobs";
 import { JOBS, JOB_CONTENT, PASSIVES, SKILLS } from "../data/battle";
-import type { Session } from "../game/session";
+import { changeLoadout, type Session } from "../game/session";
 
 const C = JOB_CONTENT;
 const SLOT_LABEL: Record<PassiveSlot, string> = { reaction: "Reaction", support: "Support", movement: "Movement" };
@@ -55,9 +55,13 @@ export class PartyMenu {
     const v = sel.value || null;
     try {
       const slot = sel.dataset.slot!;
-      if (slot === "primary") changeJob(C, ch, v!, this.session.discovered);
-      else if (slot === "secondary") setSecondary(C, ch, v);
-      else equip(C, ch, slot as PassiveSlot, v);
+      changeLoadout(this.session, () => {
+        // changeLoadout may roll the party back to a copy: look the character up again.
+        const c = this.session.party.find((x) => x.id === ch.id)!;
+        if (slot === "primary") changeJob(C, c, v!, this.session.discovered);
+        else if (slot === "secondary") setSecondary(C, c, v);
+        else equip(C, c, slot as PassiveSlot, v);
+      });
       this.note = "";
     } catch (err) {
       if (!(err instanceof JobError)) throw err;
@@ -86,6 +90,7 @@ export class PartyMenu {
       </div>
       <div class="hint">Jobs level up from victories (XP goes to each survivor's current job). Learned abilities stay learned after you switch jobs: use another job's commands as your Secondary, and equip passives from any job.</div>
       <div class="pm-jobs">Jobs found: ${found}</div>
+      <div>Field abilities: ${s.world.abilities.size ? [...s.world.abilities].map((a) => `<b>${PASSIVES[a]?.name ?? a}</b>`).join(", ") : `<span class="hint">none. Equip one in a Movement slot (e.g. Float) to use it on the map.</span>`}</div>
       ${recipes}
       ${this.note ? `<div class="pm-note">${esc(this.note)}</div>` : ""}
       <div class="pm-cards">${s.party.map((c) => this.card(c)).join("")}</div>`;

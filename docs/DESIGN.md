@@ -152,4 +152,6 @@ The Maze is a character and the central antagonist / rival.
 | Starting jobs & discovery (M4) | Three starter jobs (Vanguard, Pyromancer, Mystic), one per starting character. Two jobs are discoverable in the Antechamber for testing: Lancer and Ranger. One hybrid: Spellblade (Lancer Lv2 + Pyromancer Lv2). See [jobs.md](jobs.md). |
 | Job progression (M4) | Abilities are learned by job level (no point spending). XP goes to the survivors' primary jobs. Learned passives auto-equip into empty slots. Jobs can be changed freely outside battle. |
 | Starting party (M4) | Three characters: Wren (person, Vanguard), Sable (person, Pyromancer), Burr (creature, Mystic). More come from zone recruits later. |
+| Float (M5) | A Mystic Movement passive (Lv3). It works on the map while **any** member has it equipped; in battle it ignores lava and spikes. It opens the relic island in the Antechamber. Unequipping over lava is refused. |
+| Hosting | Static build (`npm run build` → `dist/`), deployable to Cloudflare Pages. Relative asset paths (`base: "./"`). |
 | Grid orientation (M2) | Depth 0 = front. Line shots hit the first unit in their path, **friend or foe** (enables "make them hit each other"). |

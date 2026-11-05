@@ -6,8 +6,8 @@ import { assessEncounter, type Assessment } from "../core/battle/autoresolve";
 import { createBattle } from "../core/battle/engine";
 import type { BattleSetup, BattleState, UnitSpec } from "../core/battle/types";
 import { Rng } from "../core/rng";
-import { gainXp, type Character, type ProgressNote } from "../core/jobs";
-import { createWorld, removeEnemy, type Enemy, type World } from "../core/world";
+import { JobError, fieldAbilities, gainXp, type Character, type ProgressNote } from "../core/jobs";
+import { createWorld, playerFooting, removeEnemy, type Enemy, type World } from "../core/world";
 import { ENEMY_KINDS, getZone } from "../data";
 import {
   BATTLE_CONTENT,
@@ -98,7 +98,9 @@ function defeatEnemy(session: Session, enemyId: string) {
 /** Every surviving member gains XP in their primary job. */
 function awardXp(session: Session, encounterId: string, members: Character[]): ProgressNote[] {
   const xp = encounterXp(encounterId);
-  return members.flatMap((m) => gainXp(JOB_CONTENT, m, xp, session.discovered));
+  const notes = members.flatMap((m) => gainXp(JOB_CONTENT, m, xp, session.discovered));
+  syncField(session); // a newly learned passive may have auto-equipped (e.g. Float)
+  return notes;
 }
 
 const abilityName = (id: string) => SKILLS[id]?.name ?? PASSIVES[id]?.name ?? id;
@@ -184,14 +186,44 @@ function pickMazeLine(session: Session, lines: string[]): string {
  * Touch a map feature. A job source adds its job to the discovered set the
  * first time. Returns the line to show.
  */
-export function interact(session: Session, featureId: string): { message: string; discovered?: string } {
+export function interact(
+  session: Session,
+  featureId: string,
+): { message: string; discovered?: string; collected?: string; notes?: ProgressNote[] } {
   const f = session.world.zone.features.find((x) => x.id === featureId);
   if (!f) throw new Error(`No feature '${featureId}'`);
-  if (f.kind === "job" && !session.discovered.has(f.job)) {
+  if (f.kind === "job" && f.job && !session.discovered.has(f.job)) {
     session.discovered.add(f.job);
     return { message: `${f.text} (Open the party menu with P.)`, discovered: f.job };
   }
+  if (f.kind === "relic" && !session.world.removedFeatures.has(f.id)) {
+    session.world.removedFeatures.add(f.id);
+    const notes = session.party.flatMap((m) => gainXp(JOB_CONTENT, m, f.xp ?? 0, session.discovered));
+    syncField(session);
+    return { message: [f.text, ...notes.map(describeNote(session))].join(" "), collected: f.id, notes };
+  }
   return { message: f.after ?? f.text };
+}
+
+/** Recompute the party's field abilities from equipped Movement passives. */
+export function syncField(session: Session): void {
+  session.world.abilities = fieldAbilities(JOB_CONTENT, session.party);
+}
+
+/**
+ * Change the party's loadout (job, secondary, slots) through `change`, then
+ * refresh field abilities. Refused, and rolled back, if it would leave the
+ * party standing somewhere it can no longer be (taking off Float over lava).
+ */
+export function changeLoadout(session: Session, change: () => void): void {
+  const before = structuredClone(session.party);
+  change();
+  syncField(session);
+  if (!playerFooting(session.world)) {
+    session.party.splice(0, session.party.length, ...before);
+    syncField(session);
+    throw new JobError("Not while you're over lava: you'd fall in. Step onto solid ground first.");
+  }
 }
 
 export function partyIsDown(session: Session): boolean {

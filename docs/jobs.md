@@ -17,7 +17,7 @@ All content is data: `src/data/jobs.json` (jobs, unlock rules, abilities by leve
   | Secondary | The learned commands of one other job you've taken up |
   | Reaction | A learned reaction passive, from any job |
   | Support | A learned support passive, from any job |
-  | Movement | A learned movement passive, from any job. Field (overworld) effects come in M5 |
+  | Movement | A learned movement passive, from any job. Some also work on the map (**field abilities**) |
 
 - A newly learned passive **auto-equips** if its slot is empty.
 - **Changing jobs:** free, any time outside battle, via the party menu (**P**). HP keeps its fraction of the new max. Downed members stay down.
@@ -30,7 +30,7 @@ All content is data: `src/data/jobs.json` (jobs, unlock rules, abilities by leve
 |---|---|---|---|---|---|---|---|
 | **Vanguard** | starter | 16 | front | Strike, Brace | Taunt, *Counter* (R) | Shield Bash, *Fortitude* (S) | Rampart |
 | **Pyromancer** | starter | 9 | back | Firebolt, Scorch | Flame Pillar, *Kindling* (S) | Detonate, *Ember Walk* (M) | |
-| **Mystic** | starter | 10 | mid/back | Mend, Ward | Silence, *Blink* (M) | Daze, *Second Wind* (R) | Transpose, *Devotion* (S) |
+| **Mystic** | starter | 10 | mid/back | Mend, Ward | Silence, *Blink* (M) | Daze, ***Float*** (M, field) | Transpose, *Second Wind* (R), *Devotion* (S) |
 | **Lancer** | the Old Lancer, south corridor | 11 | middle | Jab, Hook | Shunt, *Anchor* (S) | Lunge, *Repel* (R) | Sweep, *Stride* (M) |
 | **Ranger** | a bow by the lava pool, NE | 10 | back | Aimed Shot, Caltrops | Arrow Rain, *Deadeye* (S) | Pinning Shot, *Stride* (M) | |
 | **Spellblade** | hybrid: Lancer Lv2 + Pyromancer Lv2 | 13 | front/mid | Flame Lunge, Searing Hook | Blazing Sweep, *Burning Riposte* (R) | *Kindling* (S) | |
@@ -53,8 +53,18 @@ R = reaction, S = support, M = movement.
 | Blink | movement | Step to any tile on your grid |
 | Stride | movement | Step up to two tiles |
 | Ember Walk | movement | Fire and lava tiles don't hurt you |
+| **Float** | movement, **field** | Battle: lava and spikes don't hurt you. Map: the party can cross lava |
 
 Reactions fire **after** the triggering attack fully resolves, and only against attacks from the opposing side (never friendly fire). In the engine, passives are plain `UnitTraits` fields. The engine knows nothing about jobs.
+
+## Field abilities (Milestone 5)
+
+A Movement passive with a `field` value (`abilities.json`) gives the **whole party** that ability on the map while **any member has it equipped**. Tiles with a matching `gate` (`tiles.json`) become passable: `float` crosses lava (`~`).
+
+- This is the design doc's trade-off: the Mystic who carries Float gives up Blink (move anywhere in battle) for exploration reach.
+- Float is learned at Mystic Lv3. Blink, learned at Lv2, already fills the slot, so **Float has to be equipped by hand** in the party menu. Touching lava without it says what's needed.
+- You can't take Float off (or change job in a way that drops it) while hovering over lava. The change is refused and rolled back.
+- **The gated area:** the relic on the island in the northeast lava pool (the Antechamber's recipe secret). Collecting it gives every member 12 job XP and a line of story.
 
 ## Interesting combinations (what the system is meant to produce)
 

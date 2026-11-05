@@ -31,14 +31,16 @@ export interface EnemySpawn {
 }
 
 /**
- * Something on the map you can walk up to and touch (solid). For now: a
- * source of a discoverable job (a hermit, an abandoned weapon, ...).
+ * Something on the map you can walk up to and touch (solid): a source of a
+ * discoverable job (a hermit, an abandoned weapon, ...) or a relic to collect.
  */
 export interface Feature {
   id: string;
-  kind: "job";
-  /** Job taught by this feature. */
-  job: string;
+  kind: "job" | "relic";
+  /** kind "job": the job taught by this feature. */
+  job?: string;
+  /** kind "relic": job XP granted to every member when collected. */
+  xp?: number;
   x: number;
   y: number;
   name: string;
@@ -46,7 +48,7 @@ export interface Feature {
   text: string;
   /** Shown on later touches. */
   after?: string;
-  look: "hermit" | "weapon";
+  look: "hermit" | "weapon" | "relic";
 }
 
 export interface ZoneData {

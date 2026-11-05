@@ -12,5 +12,6 @@
 
   "blink":           { "name": "Blink",           "slot": "movement", "desc": "Step to any tile on your grid.",                "traits": { "move": "blink" } },
   "stride":          { "name": "Stride",          "slot": "movement", "desc": "Step up to two tiles.",                         "traits": { "move": "stride" } },
+  "float":           { "name": "Float",           "slot": "movement", "desc": "Hover over the ground: lava and spikes don't hurt you in battle, and the party can cross lava on the map.", "traits": { "hazardImmune": ["lava", "spikes"] }, "field": "float" },
   "ember_walk":      { "name": "Ember Walk",      "slot": "movement", "desc": "Fire and lava tiles don't hurt you.",          "traits": { "hazardImmune": ["fire", "lava"] } }
 }

@@ -126,7 +126,7 @@ partyEl.addEventListener("click", (e) => {
 
 /** Features whose job hasn't been discovered yet. */
 function freshFeatures(): Set<string> {
-  return new Set(world.zone.features.filter((f) => !session.discovered.has(f.job)).map((f) => f.id));
+  return new Set(world.zone.features.filter((f) => f.kind === "job" && f.job && !session.discovered.has(f.job)).map((f) => f.id));
 }
 
 function beginEncounter(enemyId: string, initiator: "player" | "enemy", now: number) {
@@ -183,6 +183,12 @@ function endEncounter(enemyId: string, state: Parameters<typeof finishBattle>[2]
 }
 
 let lastTouched: string | null = null;
+/** Only hint about a gate once until you move again. */
+let lastGateHint: string | null = null;
+const GATE_HINTS: Record<string, string> = {
+  float: "The lava is too hot to cross on foot. Someone who could Float over it might. (A Mystic learns Float at Lv3; equip it in the Movement slot.)",
+  swim: "Deep water. You'd need to swim. (Not in this slice.)",
+};
 
 function handle(events: WorldEvent[], now: number) {
   for (const ev of events) {
@@ -191,6 +197,7 @@ function handle(events: WorldEvent[], now: number) {
         if (ev.who === "player") {
           playerTween.moveTo(world.player.x, world.player.y, ev.fromX, ev.fromY, now);
           lastTouched = null;
+          lastGateHint = null;
         }
         else {
           const e = world.enemies.find((en) => en.id === ev.who);
@@ -205,7 +212,18 @@ function handle(events: WorldEvent[], now: number) {
         if (ev.featureId === lastTouched) break;
         lastTouched = ev.featureId;
         const r = interact(session, ev.featureId);
-        say(r.message, r.discovered ? 10000 : 6000);
+        if (r.message) say(r.message, r.discovered || r.collected ? 10000 : 6000);
+        if (r.collected) {
+          const f = world.zone.features.find((x) => x.id === r.collected)!;
+          effects.push({ kind: "poof", px: f.x * TILE, py: f.y * TILE, start: now, color: "#f2d64b" });
+          renderParty();
+        }
+        break;
+      }
+      case "blocked": {
+        if (!ev.gate || ev.gate === lastGateHint) break;
+        lastGateHint = ev.gate;
+        say(GATE_HINTS[ev.gate] ?? "Something here needs an ability you don't have yet.", 5000);
         break;
       }
       case "rest":
@@ -243,7 +261,8 @@ function frame(now: number) {
     drawFrame(ctx, {
       world, player: playerTween.pos(now), enemies, effects, timeMs: now,
       fresh: freshFeatures(),
-      featureColor: (f) => JOBS[f.job]?.color ?? "#d9d3e6",
+      featureColor: (f) => (f.job ? JOBS[f.job]?.color : undefined) ?? "#f2d64b",
+      floating: world.abilities.has("float") && !!world.zone.tileDefs[world.zone.tiles[world.player.y * world.zone.width + world.player.x]!]?.solid,
     });
   }
   requestAnimationFrame(frame);

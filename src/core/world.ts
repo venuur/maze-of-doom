@@ -54,8 +54,10 @@ export interface World {
   player: Actor;
   enemies: Enemy[];
   enemyKinds: Record<string, EnemyKind>;
-  /** Field abilities equipped by the party (e.g. "float"). Empty until Milestone 5. */
+  /** Field abilities equipped by the party (e.g. "float"). Kept in sync by the session. */
   abilities: Set<string>;
+  /** Features taken off the map (collected relics). */
+  removedFeatures: Set<string>;
   rng: Rng;
 }
 
@@ -63,7 +65,8 @@ export interface World {
 export type WorldEvent =
   | { type: "moved"; who: "player" | string; fromX: number; fromY: number }
   | { type: "turned"; who: "player" }
-  | { type: "blocked" }
+  /** `gate`: the field ability that would let you pass (e.g. "float" for lava). */
+  | { type: "blocked"; gate?: string }
   | { type: "encounter"; enemyId: string; initiator: "player" | "enemy" }
   | { type: "interact"; featureId: string }
   | { type: "exit"; x: number; y: number }
@@ -88,12 +91,24 @@ export function createWorld(zone: Zone, enemyKinds: Record<string, EnemyKind>, s
     })),
     enemyKinds,
     abilities: new Set(),
+    removedFeatures: new Set(),
     rng: new Rng(seed),
   };
 }
 
 export function removeEnemy(world: World, id: string): void {
   world.enemies = world.enemies.filter((e) => e.id !== id);
+}
+
+/** A feature still on the map at (x, y). */
+export function activeFeatureAt(world: World, x: number, y: number) {
+  const f = featureAt(world.zone, x, y);
+  return f && !world.removedFeatures.has(f.id) ? f : undefined;
+}
+
+/** Can the player stand where it is now? (False after losing a field ability mid-lava.) */
+export function playerFooting(world: World): boolean {
+  return isPassable(world.zone, world.player.x, world.player.y, world.abilities);
 }
 
 export function enemyAt(world: World, x: number, y: number): Enemy | undefined {
@@ -110,10 +125,13 @@ export function movePlayer(world: World, dir: Dir): WorldEvent[] {
 
   const enemy = enemyAt(world, nx, ny);
   if (enemy) return [{ type: "encounter", enemyId: enemy.id, initiator: "player" }];
-  const feature = featureAt(world.zone, nx, ny);
+  const feature = activeFeatureAt(world, nx, ny);
   if (feature) return [{ type: "interact", featureId: feature.id }];
 
-  if (!isPassable(world.zone, nx, ny, world.abilities)) return [{ type: "blocked" }];
+  if (!isPassable(world.zone, nx, ny, world.abilities)) {
+    const gate = tileAt(world.zone, nx, ny)?.gate;
+    return [gate ? { type: "blocked", gate } : { type: "blocked" }];
+  }
 
   const fromX = p.x;
   const fromY = p.y;
@@ -155,7 +173,7 @@ export function stepEnemies(world: World): WorldEvent[] {
     if (!isPassable(world.zone, nx, ny, NO_ABILITIES)) continue;
     const tile = tileAt(world.zone, nx, ny);
     if (tile?.exit || tile?.rest) continue;
-    if (featureAt(world.zone, nx, ny)) continue;
+    if (activeFeatureAt(world, nx, ny)) continue;
     if (enemyAt(world, nx, ny)) continue;
 
     const fromX = e.x;
