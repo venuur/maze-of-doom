@@ -15,7 +15,7 @@ npm test           # unit tests (Vitest)
 npm run build      # typecheck + production build
 ```
 
-Start from the title screen: pick a save slot (3 slots, autosaved; export/import as files). Controls: arrow keys or WASD. On touch devices, an on-screen d-pad appears. Walk into a visible enemy to fight it (or it walks into you). If your party vastly outclasses it, it's an **instant win**. The glowing **shrine** near the start restores the party. Press **P** (or tap **Party**) to change jobs and fill ability slots. Figures marked **!** teach new jobs. Lava needs **Float** (Mystic Lv3, equipped in a Movement slot). Rules: [docs/jobs.md](docs/jobs.md). The Antechamber's exit leads into an endless graph of generated zones, built the first time you enter and kept forever: [docs/zones.md](docs/zones.md).
+Start from the title screen: pick a save slot (3 slots, autosaved; export/import as files). Controls: arrow keys or WASD. On touch devices, an on-screen d-pad appears. Walk into a visible enemy to fight it (or it walks into you). If your party vastly outclasses it, it's an **instant win**. The glowing **shrine** near the start restores the party. Press **P** (or tap **Party**) to change jobs and fill ability slots. Figures marked **!** teach new jobs. Lava needs **Float** (Mystic Lv3, equipped in a Movement slot). Rules: [docs/jobs.md](docs/jobs.md). The Antechamber's exit leads into an endless graph of generated zones, built the first time you enter and kept forever: [docs/zones.md](docs/zones.md). The Maze watches how you fight, names your habits, then builds zones against them: [docs/maze.md](docs/maze.md).
 
 **Battle sandbox** (`battle.html`): pick an encounter and a party preset (starting Lv1, Lv2, veteran, or a Spellblade), tap a party member, step to a blue tile (optional), pick a skill, tap a yellow target. Red tiles are telegraphed enemy attacks with resolve order and predicted damage. **Auto** lets the planner AI finish the round; **Undo** rewinds within a round. Rules and jobs: [docs/battle.md](docs/battle.md).
 
@@ -38,6 +38,7 @@ Both pages ship: `/` (overworld) and `/battle.html` (sandbox).
 |---|---|
 | `src/core/` | Pure, deterministic game logic: RNG, zones, world rules, camera. No DOM. |
 | `src/core/jobs.ts` | Job system: XP, levels, learned abilities, slots, hybrid unlocks. No DOM. |
+| `src/core/maze/` | The Maze: strategy profile, habit detection, telegraph → counter, voice interface. No DOM. |
 | `src/core/gen/` | Seeded zone generator (layout, recipe, encounters) with reachability guarantees. No DOM. |
 | `src/core/battle/` | Battle engine, grid shapes, planner AI. No DOM. |
 | `src/battle/` | Battle view component (DOM), used by the overworld and the sandbox page. |
@@ -57,4 +58,4 @@ Both pages ship: `/` (overworld) and `/battle.html` (sandbox).
 - [x] **M4** Job system: 3 starter + 2 discoverable jobs, XP and levels, learned abilities persist, 5 ability slots, Spellblade hybrid
 - [x] **M5** Field ability: Float (Mystic Lv3, Movement slot) crosses lava to the relic island
 - [x] **M6** Zone generation & persistence: endless seeded zone graph, 3 themes, full recipe per zone, 3 autosaved slots with export/import
-- [ ] **M7** The Maze's voice & counter-strategy
+- [x] **M7** The Maze's voice & counter-strategy: strategy profile, telegraphed habits, counter zones with better rewards, reclaimed zones, template voice (LLM-ready interface)

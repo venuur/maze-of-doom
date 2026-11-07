@@ -22,3 +22,6 @@
 .pm-progress ul { margin: 4px 0 6px; padding-left: 18px; list-style: none; }
 .pm-progress li { opacity: 0.5; }
 .pm-progress li.got { opacity: 1; }
+.pm-maze { border-color: #5a2a36; }
+.pm-maze h2 { font-size: 14px; margin: 0; color: #e84a5f; }
+.pm-maze .said { margin: 0; padding-left: 16px; font-style: italic; color: #e8a0aa; }

@@ -1,0 +1,100 @@
+{
+  "noticeCooldown": 8,
+  "reclaimAfter": 6,
+  "counterXp": 1.5,
+  "counterRelicXp": 2,
+  "counters": {
+    "fire": {
+      "name": "Fireproof",
+      "twist": "Fireproof. Everything here was built to take your fire and shrug.",
+      "resist": { "fire": 0.25 },
+      "foeBias": "wisp",
+      "theme": "crypt"
+    },
+    "physical": {
+      "name": "Stone-skinned",
+      "twist": "Stone-skinned. Blades and fists find no purchase here.",
+      "resist": { "physical": 0.5 },
+      "foeBias": "warden",
+      "theme": "garden"
+    },
+    "displacement": {
+      "name": "Rooted",
+      "twist": "Rooted. Nothing here can be pushed, pulled or swapped.",
+      "traits": { "steadfast": true },
+      "foeBias": "warden"
+    },
+    "defense": {
+      "name": "Piercing",
+      "twist": "Piercing. Attacks here ignore shields, wards and taunts.",
+      "traits": { "pierce": true },
+      "foeBias": "archer"
+    }
+  },
+  "notice": {
+    "fire": [
+      "You rely on fire. How quaint.",
+      "{share} of the pain you deal is fire. I keep count. I'm building something that doesn't burn.",
+      "Fire, fire, fire. Do you know any other words?"
+    ],
+    "physical": [
+      "You hit things. Hard, and often. {share} of it with steel and fists. I'll find you something harder.",
+      "All that striking. I'm growing stone that strikes back.",
+      "Brute force. Let's see it against something that doesn't bruise."
+    ],
+    "displacement": [
+      "You push my pieces around my board. I'm planting ones with roots.",
+      "Shove, pull, swap. Clever. I'm making things that won't be moved.",
+      "You treat my creatures like furniture. The next room's furniture is bolted down."
+    ],
+    "defense": [
+      "Shields, wards, taunts. You hide well. I'm sharpening something.",
+      "You've learned to take a hit. I'm teaching mine to go around.",
+      "So much bracing. The next ones won't knock first."
+    ]
+  },
+  "arrive": {
+    "fire": [
+      "I built this for you. Let's see your fire now.",
+      "Go on. Burn something. I'll wait.",
+      "Fireproof, every one. The prize is worth it, if you can change."
+    ],
+    "physical": [
+      "Stone, all the way down. Hit it. I dare you.",
+      "This room is harder than your arms. The reward is too.",
+      "Made for you. Bring something besides a blade."
+    ],
+    "displacement": [
+      "Rooted, every one of them. Push. Go on.",
+      "Nothing here moves unless I say so.",
+      "A board you can't rearrange. What else do you have?"
+    ],
+    "defense": [
+      "Your shields won't help here. Neither will your taunts.",
+      "These don't fall for tricks. They go straight for the soft parts.",
+      "Hide, if you like. They'll find you anyway."
+    ]
+  },
+  "lines": {
+    "defeat": [
+      "Not yet. I'm not finished with you.",
+      "Get up. Again.",
+      "Falling is allowed. Leaving is not.",
+      "That was instructive. For me."
+    ],
+    "reclaim": [
+      "You cleared {zone}. I didn't like it empty.",
+      "{zone} is mine again. I've redecorated.",
+      "Did you think {zone} would stay quiet? I've refilled it."
+    ],
+    "counterWin": [
+      "Hm. You adapted. Noted.",
+      "Fine. Take your prize. I'll remember this.",
+      "Good. You're more interesting when you change."
+    ],
+    "firstZone": [
+      "Out of the Antechamber at last. Everything past here, I'm making up as you go.",
+      "Welcome to the rest of me."
+    ]
+  }
+}

@@ -156,5 +156,7 @@ The Maze is a character and the central antagonist / rival.
 | Save system (M6) | **Several slots** (3), autosaved to browser storage, with export/import as JSON files. A save holds generated zones (generate once, persist) and per-zone changes. See [zones.md](zones.md). |
 | Zone generation (M6) | Three themes (Cinder Fields, Drowned Crypt, Strangler Garden). Each twist is also a mechanical modifier. Secrets are sealed by the theme's gate tile: only Float exists so far, so crypt and garden secrets are visible but wait for future abilities. |
 | Universal attack (M6) | The Mystic gets **Spark** at Lv1 (1 arcane damage to any enemy), so a generated fight can never be an unwinnable stalemate (e.g. fire-immune back-row foes against a Lv1 party). |
+| Maze voice (M7) | **Templates only** for now, behind a `MazeVoice` interface so an LLM can be wired in later without touching rules. See [maze.md](maze.md). |
+| Counter-strategy (M7) | Habits: fire, physical, displacement, defense, read from decayed battle logs. The Maze names a habit (the telegraph) before the next new zone is built against it. Counter zones pay ×1.5 XP and a ×2 relic. Cleared generated zones are reclaimed after 6 fights elsewhere. |
 | Hosting | Static build (`npm run build` → `dist/`), deployable to Cloudflare Pages. Relative asset paths (`base: "./"`). |
 | Grid orientation (M2) | Depth 0 = front. Line shots hit the first unit in their path, **friend or foe** (enables "make them hit each other"). |

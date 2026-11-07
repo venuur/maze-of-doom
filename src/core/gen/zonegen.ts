@@ -57,6 +57,20 @@ export interface GenContent {
   foeNames: Record<string, string>;
 }
 
+/** Turns a zone into a counter zone against one of the player's habits (from the Maze). */
+export interface CounterSpec {
+  /** The habit countered (e.g. "fire"). */
+  id: string;
+  /** Replaces the theme's twist. */
+  twist: string;
+  foeBias?: string;
+  resist?: Record<string, number>;
+  traits?: import("../battle/types").UnitTraits;
+  /** Counter zones hold the best rewards. */
+  xpMult: number;
+  relicXpMult: number;
+}
+
 export interface GenParams {
   id: string;
   seed: number;
@@ -65,6 +79,7 @@ export interface GenParams {
   depth: number;
   /** Exits besides the one you arrive through ("back"). */
   forwardExits: number;
+  counter?: CounterSpec;
 }
 
 export const GEN_W = 40;
@@ -152,7 +167,9 @@ export function generateZone(params: GenParams, content: GenContent): ZoneData {
 function tryGenerate(params: GenParams, theme: ThemeDef, content: GenContent, rng: Rng): ZoneData | null {
   const { tiles } = content;
   const g = new Grid(GEN_W, GEN_H, theme.wall);
-  const twist = rng.pick(theme.twists);
+  const counter = params.counter;
+  const themed = rng.pick(theme.twists);
+  const twist: TwistDef = counter ? { text: counter.twist, foeBias: counter.foeBias, enemies: 1 } : themed;
 
   // 1. Rooms.
   const rooms: Room[] = [];
@@ -291,7 +308,7 @@ function tryGenerate(params: GenParams, theme: ThemeDef, content: GenContent, rn
   if (!relicPos.length) return null;
   const rp = claim(rng.pick(relicPos));
   const relicName = rng.pick(theme.relicNames);
-  const relicXp = 10 + params.depth * 4;
+  const relicXp = Math.round((10 + params.depth * 4) * (counter?.relicXpMult ?? 1));
   features.push({
     id: `${params.id}-relic`, kind: "relic", x: rp.x, y: rp.y, xp: relicXp, name: relicName, look: "relic",
     text: `${relicName}. ${theme.relicText} Every member gains ${relicXp} job XP.`, after: "",
@@ -351,7 +368,12 @@ function tryGenerate(params: GenParams, theme: ThemeDef, content: GenContent, rn
     const pos = claim(rng.pick(spots));
     const id = `${params.id}-e${i + 1}`;
     const leader = twist.foeBias && rng.next() < 0.6 ? twist.foeBias : rng.pick(theme.foes);
-    encounters[id] = makeEncounter(rng, leader, theme, twist, params.depth, content);
+    const enc = makeEncounter(rng, leader, theme, twist, params.depth, content);
+    if (counter) {
+      enc.mods = { resist: counter.resist, traits: counter.traits };
+      enc.xpMult = counter.xpMult;
+    }
+    encounters[id] = enc;
     enemies.push({ id, kind: leader, x: pos.x, y: pos.y, encounter: id });
   }
   if (enemies.length < 3) return null;
@@ -362,6 +384,7 @@ function tryGenerate(params: GenParams, theme: ThemeDef, content: GenContent, rn
     name: rng.pick(theme.names),
     theme: params.theme,
     depth: params.depth,
+    ...(counter ? { counter: counter.id } : {}),
     recipe: {
       theme: theme.name,
       twist: twist.text,

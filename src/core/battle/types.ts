@@ -72,6 +72,8 @@ export interface UnitTraits {
   healBonus?: number;
   /** Support: cannot be pushed, pulled, shoved or swapped. */
   steadfast?: boolean;
+  /** This unit's attacks ignore guard, and taunts don't redirect it. */
+  pierce?: boolean;
   /** Movement: hazards of these kinds don't hurt this unit. */
   hazardImmune?: string[];
   /** Movement: step rule. Default = one orthogonal tile. blink = any tile on own grid; stride = up to two tiles. */

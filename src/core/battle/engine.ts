@@ -134,13 +134,13 @@ export function living(state: BattleState, side?: Unit["side"]): Unit[] {
 // ---------------------------------------------------------------------------
 
 /** Damage `user`'s skill would deal to `target` right now. */
-export function damageAmount(user: Unit | null, target: Unit, power: number, element: string): number {
+export function damageAmount(user: Unit | null, target: Unit, power: number, element: string, ignoreGuard = false): number {
   if (power <= 0) return 0;
   let base = power;
   if (user && user.prefers.includes(user.depth)) base += PREFERRED_DEPTH_BONUS;
   let mult = target.resist[element] ?? 1;
   if (mult <= 0) return 0;
-  if (target.guard) mult *= 0.5;
+  if (target.guard && !ignoreGuard) mult *= 0.5;
   return Math.max(1, Math.floor(base * mult));
 }
 
@@ -148,7 +148,7 @@ export function skillPower(user: Unit, skill: SkillDef, target: Unit): number {
   const element = skill.element ?? "physical";
   if (!skill.power) return 0;
   const bonus = (user.traits.elementBonus?.[element] ?? 0) + (user.traits.shapeBonus?.[skill.shape] ?? 0);
-  return damageAmount(user, target, skill.power + bonus, element);
+  return damageAmount(user, target, skill.power + bonus, element, !!user.traits.pierce);
 }
 
 export type UsableResult = { ok: true } | { ok: false; reason: string };
@@ -362,7 +362,7 @@ function applyTaunt(state: BattleState, taunter: Unit): void {
   // Aimed enemy attacks are redirected onto the taunter (and keep following it).
   for (const intent of state.intents) {
     const actor = getUnit(state, intent.actorId);
-    if (actor.side === taunter.side) continue;
+    if (actor.side === taunter.side || actor.traits.pierce) continue;
     const skill = state.skills[intent.skillId]!;
     if (skill.target !== "foe") continue;
     if (skill.shape === "single" || skill.shape === "cross" || skill.shape === "behind") {

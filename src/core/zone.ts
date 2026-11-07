@@ -1,5 +1,5 @@
 /** Zone data model and loading/validation. Pure, no DOM. */
-import type { Hazard } from "./battle/types";
+import type { Hazard, UnitTraits } from "./battle/types";
 
 export interface TileDef {
   id: string;
@@ -20,6 +20,10 @@ export interface EncounterDef {
   desc: string;
   foes: { kind: string; depth: number; lane: number }[];
   hazards?: Hazard[];
+  /** Applied to every foe (counter zones): resistances multiply in, traits are added. */
+  mods?: { resist?: Record<string, number>; traits?: UnitTraits };
+  /** XP multiplier (counter zones pay better). */
+  xpMult?: number;
 }
 
 /** A way out of a zone. Links between exits live in the session's zone graph. */
@@ -84,6 +88,8 @@ export interface ZoneData {
   encounters?: Record<string, EncounterDef>;
   /** Theme id (generated zones) and graph distance from the first zone. */
   theme?: string;
+  /** Set on counter zones: the habit (tactic) this zone was built against. */
+  counter?: string;
   depth?: number;
 }
 
@@ -103,6 +109,7 @@ export interface Zone {
   encounters: Record<string, EncounterDef>;
   theme?: string;
   depth: number;
+  counter?: string;
 }
 
 export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
@@ -136,6 +143,7 @@ export function loadZone(data: ZoneData, tileDefs: TileTable): Zone {
     encounters: data.encounters ?? {},
     theme: data.theme,
     depth: data.depth ?? 0,
+    counter: data.counter,
   };
 
   const check = (x: number, y: number, what: string) => {

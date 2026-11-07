@@ -9,6 +9,7 @@
  */
 import { jobLevel, type Character } from "../core/jobs";
 import { Rng } from "../core/rng";
+import { newMazeState, type MazeState } from "../core/maze/maze";
 import type { Dir } from "../core/world";
 import type { ZoneData } from "../core/zone";
 import { JOBS, JOB_CONTENT } from "../data/battle";
@@ -32,6 +33,8 @@ export interface SaveData {
   links: Record<string, Link>;
   visited: string[];
   zoneCount: number;
+  /** Added in Milestone 7; older saves start with a fresh Maze. */
+  maze?: MazeState;
 }
 
 export interface SlotSummary {
@@ -62,6 +65,7 @@ export function serialize(session: Session, now = Date.now()): SaveData {
     links: session.links,
     visited: session.visited,
     zoneCount: session.zoneCount,
+    maze: session.maze,
   });
 }
 
@@ -88,6 +92,7 @@ export function deserialize(raw: unknown): Session {
     links: data.links,
     visited: data.visited,
     zoneCount: data.zoneCount ?? 0,
+    maze: data.maze ?? newMazeState(),
   };
   try {
     session.world = makeWorld(session, data.zone);

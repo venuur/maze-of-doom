@@ -389,7 +389,15 @@ function unitHtml(u: Unit, incomingDmg: number | undefined, sel: Unit | null, sk
 function foeInfo(state: BattleState, u: Unit): string {
   const resist = Object.entries(u.resist).map(([k, v]) => `${k} ×${v}`).join(", ") || "none";
   const skills = u.skills.map((id) => state.skills[id]!).map((s) => `${s.name} (${s.shape}, ${s.power ?? 0}${s.cooldown ? `, cd ${s.cooldown}` : ""})`).join("; ");
-  return `<hr style="border-color:var(--line)"><div><b>${u.name}</b> ${u.hp}/${u.maxHp}${u.mobile ? " · mobile" : ""}</div><div class="hint">Resist: ${resist}</div><div class="hint">Skills: ${skills}</div>`;
+  return `<hr style="border-color:var(--line)"><div><b>${u.name}</b> ${u.hp}/${u.maxHp}${u.mobile ? " · mobile" : ""}</div><div class="hint">Resist: ${resist}</div>${traitsLine(u)}<div class="hint">Skills: ${skills}</div>`;
+}
+
+function traitsLine(u: Unit): string {
+  const t: string[] = [];
+  if (u.traits.steadfast) t.push("rooted: can't be displaced");
+  if (u.traits.pierce) t.push("piercing: ignores guard and taunt");
+  if (u.traits.counter) t.push(`counters for ${u.traits.counter.power}`);
+  return t.length ? `<div class="hint">${t.join(" · ")}</div>` : "";
 }
 
 function describe(state: BattleState, e: BattleEvent): string | null {

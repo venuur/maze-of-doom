@@ -2,6 +2,8 @@ import tilesJson from "./tiles.json";
 import enemiesJson from "./enemies.json";
 import antechamberJson from "./zones/antechamber.json";
 import themesJson from "./themes.json";
+import mazeJson from "./maze.json";
+import { templateVoice, type MazeContent } from "../core/maze/maze";
 import type { GenContent, ThemeDef } from "../core/gen/zonegen";
 import { loadZone, type TileTable, type ZoneData } from "../core/zone";
 import type { EnemyKind } from "../core/world";
@@ -33,3 +35,7 @@ export const GEN_CONTENT: GenContent = {
 export function handcraftedZone(id: string): ZoneData | undefined {
   return ZONES[id];
 }
+
+export const MAZE = mazeJson as unknown as MazeContent;
+/** The Maze's voice. Templates for now; an LLM voice can replace this (keeping templates as fallback). */
+export const MAZE_VOICE = templateVoice(MAZE);

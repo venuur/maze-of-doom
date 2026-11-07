@@ -22,6 +22,8 @@ import {
   type PassiveSlot,
 } from "../core/jobs";
 import { JOBS, JOB_CONTENT, PASSIVES, SKILLS } from "../data/battle";
+import { MAZE } from "../data";
+import { dominantHabit, topOf } from "../core/maze/profile";
 import { changeLoadout, type Session } from "../game/session";
 
 const C = JOB_CONTENT;
@@ -93,7 +95,31 @@ export class PartyMenu {
       <div>Field abilities: ${s.world.abilities.size ? [...s.world.abilities].map((a) => `<b>${PASSIVES[a]?.name ?? a}</b>`).join(", ") : `<span class="hint">none. Equip one in a Movement slot (e.g. Float) to use it on the map.</span>`}</div>
       ${recipes}
       ${this.note ? `<div class="pm-note">${esc(this.note)}</div>` : ""}
-      <div class="pm-cards">${s.party.map((c) => this.card(c)).join("")}</div>`;
+      <div class="pm-cards">${s.party.map((c) => this.card(c)).join("")}</div>
+      ${this.mazePanel()}`;
+  }
+
+  /** What the Maze has learned about you, and what it has said. */
+  private mazePanel(): string {
+    const m = this.session.maze;
+    const p = m.profile;
+    const dmg = topOf(p.damage).map((d) => `${esc(d.key)} ${pct(d.share)}`).join(", ") || "nothing yet";
+    const skills = topOf(p.skills).map((d) => esc(abilityName(d.key))).join(", ") || "nothing yet";
+    const habit = dominantHabit(p);
+    const status = m.armed
+      ? `It has named your reliance on <b>${m.armed}</b>. The next new zone you enter will be built against it (<b>${MAZE.counters[m.armed].name}</b>), and will pay better.`
+      : habit
+        ? `It is watching your <b>${habit.tactic}</b> habit (${pct(habit.share)}).`
+        : `It hasn't settled on a habit to answer yet.`;
+    const said = m.said.slice(-5).reverse().map((l) => `<li>“${esc(l.text)}”</li>`).join("") || `<li class="hint">Nothing yet.</li>`;
+    const built = Object.entries(m.built).map(([t, n]) => `${MAZE.counters[t as keyof typeof MAZE.counters].name} ×${n}`).join(", ");
+    return `<section class="pm-card pm-maze">
+      <h2>The Maze is watching</h2>
+      <div class="hint">${p.battles} fights seen · your damage: ${dmg} · favourite skills: ${skills}${p.avgRounds ? ` · about ${p.avgRounds.toFixed(1)} rounds a fight` : ""}</div>
+      <div>${status}</div>
+      ${built ? `<div class="hint">Counter zones built: ${built}</div>` : ""}
+      <ul class="said">${said}</ul>
+    </section>`;
   }
 
   private card(ch: Character): string {
@@ -151,6 +177,10 @@ export class PartyMenu {
       <div class="pm-progress">${progress}</div>
     </section>`;
   }
+}
+
+function pct(x: number) {
+  return `${Math.round(x * 100)}%`;
 }
 
 function row(label: string, control: string, desc: string): string {

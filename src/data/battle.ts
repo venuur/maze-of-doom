@@ -99,7 +99,9 @@ const resolveEncounter = (e: string | EncounterDef): EncounterDef => {
 
 /** XP an encounter awards each surviving party member. Takes an id or a (zone-defined) encounter. */
 export function encounterXp(enc: string | EncounterDef): number {
-  return resolveEncounter(enc).foes.reduce((sum, f) => sum + (ENEMY_KINDS[f.kind]!.battle?.xp ?? 0), 0);
+  const e = resolveEncounter(enc);
+  const base = e.foes.reduce((sum, f) => sum + (ENEMY_KINDS[f.kind]!.battle?.xp ?? 0), 0);
+  return Math.round(base * (e.xpMult ?? 1));
 }
 
 /** Build an encounter's battle setup. `party` defaults to the starting party. */
@@ -110,7 +112,14 @@ export function buildEncounter(enc: string | EncounterDef, party?: UnitSpec[]): 
     party: party ?? partySpecsOf(startingParty()),
     foes: e.foes.map((f) => {
       counts[f.kind] = (counts[f.kind] ?? 0) + 1;
-      return foeUnit(f.kind, f.depth, f.lane, `${f.kind}-${counts[f.kind]}`);
+      const u = foeUnit(f.kind, f.depth, f.lane, `${f.kind}-${counts[f.kind]}`);
+      if (e.mods?.resist) {
+        const r = { ...(u.resist ?? {}) };
+        for (const [el, m] of Object.entries(e.mods.resist)) r[el] = (r[el] ?? 1) * m;
+        u.resist = r;
+      }
+      if (e.mods?.traits) u.traits = { ...(u.traits ?? {}), ...e.mods.traits };
+      return u;
     }),
     hazards: e.hazards,
   };

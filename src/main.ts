@@ -4,7 +4,7 @@
  * zone, hands off to the battle view on encounters, and autosaves.
  */
 import { movePlayer, stepEnemies, type Dir, type WorldEvent } from "./core/world";
-import { ENEMY_KINDS } from "./data";
+import { ENEMY_KINDS, MAZE } from "./data";
 import { JOBS, JOB_CONTENT } from "./data/battle";
 import { BattleView, type BattleExit } from "./battle/view";
 import { levelIn } from "./core/jobs";
@@ -40,8 +40,10 @@ const titleLayer = document.getElementById("title-layer")!;
 
 // --- Messages ---
 let messageTimer = 0;
+const escHtml = (t: string) => t.replace(/[&<>"]/g, (c) => `&${{ "&": "amp", "<": "lt", ">": "gt", '"': "quot" }[c]};`);
 function say(text: string, ms = 4000) {
-  messageEl.textContent = text;
+  // The Maze's own words stand out from narration.
+  messageEl.innerHTML = escHtml(text).replace(/The Maze: &quot;(.*?)&quot;/g, '<span class="maze">The Maze: “$1”</span>');
   messageEl.classList.add("show");
   window.clearTimeout(messageTimer);
   messageTimer = window.setTimeout(() => messageEl.classList.remove("show"), ms);
@@ -59,7 +61,8 @@ let lastSave = 0;
 /** Rebuild per-zone presentation state after entering a zone (travel, load, relocation). */
 function resetZoneView() {
   const w = session.world;
-  zoneLabel.textContent = `${w.zone.name}${w.zone.depth ? ` · depth ${w.zone.depth}` : ""}`;
+  const counter = w.zone.counter ? MAZE.counters[w.zone.counter as keyof typeof MAZE.counters]?.name : null;
+  zoneLabel.textContent = `${w.zone.name}${w.zone.depth ? ` · depth ${w.zone.depth}` : ""}${counter ? ` · ⚠ ${counter}` : ""}`;
   playerTween = new Tween(w.player.x, w.player.y, PLAYER_STEP_MS);
   enemyTweens = new Map(w.enemies.map((e) => [e.id, new Tween(e.x, e.y, ENEMY_STEP_MS)]));
   effects.length = 0;
@@ -276,7 +279,7 @@ function handle(events: WorldEvent[], now: number) {
         const r = travel(session, exit.id);
         resetZoneView();
         graceUntil = now + GRACE_MS;
-        say(r.isNew ? `${r.message} (The Maze builds this place as you enter. It will stay as you leave it.)` : r.message, r.isNew ? 9000 : 3000);
+        say(r.message, r.isNew || r.reclaimed ? 10000 : 3000);
         autosave();
         return; // the rest of this tick's events belong to the old zone
       }

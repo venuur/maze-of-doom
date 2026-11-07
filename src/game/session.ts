@@ -8,10 +8,12 @@ import { createBattle } from "../core/battle/engine";
 import type { BattleSetup, BattleState, UnitSpec } from "../core/battle/types";
 import { Rng } from "../core/rng";
 import { JobError, fieldAbilities, gainXp, type Character, type ProgressNote } from "../core/jobs";
-import { generateZone } from "../core/gen/zonegen";
+import { generateZone, makeEncounter, type CounterSpec } from "../core/gen/zonegen";
+import { arrivalLine, considerHabit, mazeLine, newMazeState, takeCounter, type MazeState } from "../core/maze/maze";
+import { recordBattle, recordInstantWin } from "../core/maze/profile";
 import { createWorld, playerFooting, removeEnemy, type Enemy, type World } from "../core/world";
 import { loadZone, type EncounterDef, type Zone, type ZoneData } from "../core/zone";
-import { ENEMY_KINDS, GEN_CONTENT, THEMES, TILES, handcraftedZone } from "../data";
+import { ENEMY_KINDS, GEN_CONTENT, MAZE, MAZE_VOICE, THEMES, TILES, handcraftedZone } from "../data";
 import {
   BATTLE_CONTENT,
   ENCOUNTERS,
@@ -34,6 +36,10 @@ export interface ZoneState {
   removed: string[];
   /** The zone's world RNG, so wandering and battle seeds continue where they left off. */
   rngState: number;
+  /** battlesFought when the last enemy here fell (generated zones can be reclaimed later). */
+  clearedAt?: number;
+  /** Times the Maze has reclaimed (refilled) this zone. */
+  reclaimed?: number;
 }
 
 /** Where an exit leads: a zone id and the exit you arrive through. */
@@ -60,6 +66,8 @@ export interface Session {
   visited: string[];
   /** Counter for generated zone ids. */
   zoneCount: number;
+  /** The Maze: what it has learned about you, what it plans, what it has said. */
+  maze: MazeState;
 }
 
 export type EncounterStart =
@@ -80,6 +88,7 @@ export function createSession(zoneId: string, seed: number): Session {
     links: {},
     visited: [zoneId],
     zoneCount: 0,
+    maze: newMazeState(),
   };
   session.world = makeWorld(session, zoneId);
   return session;
@@ -146,6 +155,10 @@ export interface TravelResult {
   message: string;
   /** True the first time this zone is entered (it was just generated). */
   isNew: boolean;
+  /** Set when the new zone is a counter zone: the habit it answers. */
+  counter?: string;
+  /** The Maze refilled this (previously cleared) zone. */
+  reclaimed?: boolean;
 }
 
 /**
@@ -158,12 +171,23 @@ export function travel(session: Session, exitId: string): TravelResult {
   if (!exit) throw new Error(`Zone ${here.id} has no exit '${exitId}'`);
   const key = `${here.id}/${exit.id}`;
   let isNew = false;
+  let counter: string | null = null;
   if (!session.links[key]) {
     const id = `z${++session.zoneCount}`;
     const rng = new Rng(zoneSeed(session, id));
     const themes = Object.keys(THEMES).filter((t) => t !== here.theme);
+    let theme = rng.pick(themes);
+    // A habit the Maze has already named gets its answer here.
+    const tactic = takeCounter(session.maze);
+    let spec: CounterSpec | undefined;
+    if (tactic) {
+      const c = MAZE.counters[tactic];
+      if (c.theme && themes.includes(c.theme)) theme = c.theme;
+      spec = { id: tactic, twist: c.twist, foeBias: c.foeBias, resist: c.resist, traits: c.traits, xpMult: MAZE.counterXp, relicXpMult: MAZE.counterRelicXp };
+      counter = tactic;
+    }
     const data = generateZone(
-      { id, seed: zoneSeed(session, id), theme: rng.pick(themes), depth: here.depth + 1, forwardExits: 1 + rng.int(2) },
+      { id, seed: zoneSeed(session, id), theme, depth: here.depth + 1, forwardExits: 1 + rng.int(2), counter: spec },
       GEN_CONTENT,
     );
     session.generated[id] = data;
@@ -173,16 +197,51 @@ export function travel(session: Session, exitId: string): TravelResult {
   }
   const to = session.links[key]!;
   storeWorld(session);
+  const reclaimText = isNew ? null : maybeReclaim(session, to.zone);
   session.world = makeWorld(session, to.zone);
   const arrival = session.world.zone.exits.find((e) => e.id === to.exit)!;
   session.world.player.x = arrival.arrive.x;
   session.world.player.y = arrival.arrive.y;
   if (!session.visited.includes(to.zone)) session.visited.push(to.zone);
   const z = session.world.zone;
-  const message = isNew
-    ? `${z.name}. ${z.recipe.theme}, depth ${z.depth}. ${z.recipe.twist}`
-    : `${z.name}.`;
-  return { message, isNew };
+  const m = session.maze;
+  const lines: string[] = [];
+  if (isNew) {
+    lines.push(`${z.name}. ${z.recipe.theme}, depth ${z.depth}. ${z.recipe.twist}`);
+    if (counter) lines.push(arrivalLine(m, MAZE_VOICE, session.seed, session.battlesFought, counter as never, { zone: z.name }));
+    else if (session.zoneCount === 1) lines.push(mazeLine(m, MAZE_VOICE, session.seed, session.battlesFought, "firstZone"));
+  } else {
+    lines.push(`${z.name}.`);
+    if (reclaimText) lines.push(reclaimText);
+  }
+  return { message: lines.join(" "), isNew, counter: counter ?? undefined, reclaimed: !!reclaimText };
+}
+
+/**
+ * The Maze takes back a generated zone you cleared a while ago: its enemies
+ * return, tougher (one depth deeper per reclaim). Returns the Maze's line.
+ */
+function maybeReclaim(session: Session, zoneId: string): string | null {
+  const data = session.generated[zoneId];
+  const st = session.zoneStates[zoneId];
+  if (!data || !st || st.clearedAt === undefined) return null;
+  if (session.battlesFought - st.clearedAt < MAZE.reclaimAfter) return null;
+  const n = (st.reclaimed ?? 0) + 1;
+  const theme = THEMES[data.theme!]!;
+  const twist = theme.twists.find((t) => t.text === data.recipe.twist) ?? { text: data.recipe.twist };
+  const rng = new Rng(zoneSeed(session, `${zoneId}-reclaim-${n}`));
+  data.encounters = {};
+  data.enemies = data.enemies.map((e) => {
+    const id = `${e.id.replace(/~\d+$/, "")}~${n}`;
+    const kind = rng.pick(theme.foes);
+    const enc = makeEncounter(rng, kind, theme, twist, (data.depth ?? 1) + n, GEN_CONTENT);
+    data.encounters![id] = enc;
+    return { ...e, id, kind, encounter: id };
+  });
+  st.defeated = [];
+  st.reclaimed = n;
+  delete st.clearedAt;
+  return mazeLine(session.maze, MAZE_VOICE, session.seed, session.battlesFought, "reclaim", { zone: data.name });
 }
 
 /** The exit at (x, y) in the current zone, if any. */
@@ -216,6 +275,7 @@ export function startEncounter(session: Session, enemyId: string): EncounterStar
   const name = ENEMY_KINDS[enemy.kind]!.name;
 
   if (assessment.instantWin) {
+    recordInstantWin(session.maze.profile);
     defeatEnemy(session, enemy.id);
     const notes = awardXp(session, encounterFor(session, enemy), session.party.filter((m) => m.hp > 0));
     const message = [`The ${name} is no match for you. It scatters at your touch.`, ...notes.map(describeNote(session))].join(" ");
@@ -230,7 +290,9 @@ export function startEncounter(session: Session, enemyId: string): EncounterStar
 
 function defeatEnemy(session: Session, enemyId: string) {
   removeEnemy(session.world, enemyId);
-  stateOf(session, session.world.zone.id).defeated.push(enemyId);
+  const st = stateOf(session, session.world.zone.id);
+  st.defeated.push(enemyId);
+  if (session.world.enemies.length === 0) st.clearedAt = session.battlesFought;
 }
 
 /** Every surviving member gains XP in their primary job. */
@@ -279,6 +341,9 @@ export function restoreParty(session: Session): void {
 export function finishBattle(session: Session, enemyId: string, battle: BattleState, outcome: BattleOutcome): string {
   const enemy = session.world.enemies.find((e) => e.id === enemyId);
   const name = enemy ? ENEMY_KINDS[enemy.kind]!.name : "enemy";
+  // The Maze watches every fight you actually fight.
+  recordBattle(session.maze.profile, battle);
+  const lines: string[] = [];
   switch (outcome) {
     case "won": {
       // XP goes to whoever is still standing at the end.
@@ -288,15 +353,27 @@ export function finishBattle(session: Session, enemyId: string, battle: BattleSt
       defeatEnemy(session, enemyId);
       const notes = encounter ? awardXp(session, encounter, standing) : [];
       const xp = encounter ? ` +${encounterXp(encounter)} job XP.` : "";
-      return [`Victory over the ${name}.${xp}`, ...notes.map(describeNote(session))].join(" ");
+      lines.push(`Victory over the ${name}.${xp}`, ...notes.map(describeNote(session)));
+      if (session.world.zone.counter && session.world.enemies.length === 0) {
+        lines.push(mazeLine(session.maze, MAZE_VOICE, session.seed, session.battlesFought, "counterWin"));
+      }
+      break;
     }
     case "retreat":
       syncPartyHp(session, battle, false);
-      return `You break away from the ${name}.`;
-    case "lost":
+      lines.push(`You break away from the ${name}.`);
+      break;
+    case "lost": {
       restoreParty(session);
-      return `${pickMazeLine(session, DEFEAT_LINES)} You wake in ${relocate(session)}, whole.`;
+      const line = mazeLine(session.maze, MAZE_VOICE, session.seed, session.battlesFought, "defeat");
+      lines.push(`${line} You wake in ${relocate(session)}, whole.`);
+      break;
+    }
   }
+  // Telegraph: the Maze names a habit before it ever builds against it.
+  const notice = considerHabit(session.maze, MAZE, MAZE_VOICE, session.seed, session.battlesFought);
+  if (notice) lines.push(notice);
+  return lines.join(" ");
 }
 
 /**
@@ -319,16 +396,6 @@ function relocate(session: Session): string {
   return w.zone.name;
 }
 
-const DEFEAT_LINES = [
-  "The Maze: \"Not yet. I'm not finished with you.\"",
-  "The Maze: \"Get up. Again.\"",
-  "The Maze: \"Falling is allowed. Leaving is not.\"",
-];
-
-function pickMazeLine(session: Session, lines: string[]): string {
-  const rng = new Rng(zoneSeed(session, `line-${session.battlesFought}-${session.visited.length}`));
-  return rng.pick(lines);
-}
 
 /**
  * Touch a map feature. A job source adds its job to the discovered set the
